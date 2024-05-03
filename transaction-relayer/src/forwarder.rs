@@ -75,6 +75,7 @@ pub fn start_forward_and_delay_thread(
                                     .sum::<u64>();
                                 forwarder_metrics.num_batches_received += 1;
                                 forwarder_metrics.num_packets_received += num_packets;
+                                println!("Got packet batch: {:?}", banking_packet_batch);
 
                                 // try_send because the block engine receiver only drains when it's connected
                                 // and we don't want to OOM on packet_receiver

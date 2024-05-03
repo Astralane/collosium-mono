@@ -79,7 +79,7 @@ impl AuthInterceptor {
     fn jwt_from_header(
         &self,
         meta: &MetadataMap,
-    ) -> Result<Token<Header, DeSerClaims, Verified>, Status> {
+    ) -> Result<Option<Token<Header, DeSerClaims, Verified>>, Status> {
         if let Some(auth_header) = meta.get(AUTHORIZATION_HEADER) {
             let auth_header = auth_header.to_str().map_err(|e| {
                 warn!("error parsing authorization header {}", e);
@@ -87,14 +87,14 @@ impl AuthInterceptor {
             })?;
 
             if !auth_header.starts_with(BEARER) {
-                return Err(Status::permission_denied(
-                    "Invalid authorization header format. Must conform to `Authorization: Bearer ${token}`.",
-                ));
+                warn!("Invalid authorization header format. Must conform to `Authorization: Bearer token`.");
+                return Ok(None)
             }
 
             let split: Vec<&str> = auth_header.split(BEARER).collect();
             if split.len() != 2 {
-                return Err(Status::permission_denied("Missing jwt token."));
+                warn!("Missing jwt token.");
+                return Ok(None)
             }
 
             let jwt_token: Token<Header, DeSerClaims, Verified> =
@@ -108,11 +108,10 @@ impl AuthInterceptor {
             // This shouldn't fail since the token passed verification.
             assert_eq!(jwt_token.header().algorithm, self.expected_signing_algo);
 
-            Ok(jwt_token)
+            Ok(Some(jwt_token))
         } else {
-            Err(Status::permission_denied(
-                "The authorization header is missing.",
-            ))
+            warn!("The authorization header is missing.");
+            Ok(None)
         }
     }
 }
@@ -123,8 +122,13 @@ const BEARER: &str = "Bearer ";
 impl Interceptor for AuthInterceptor {
     fn call(&mut self, mut req: Request<()>) -> Result<Request<()>, Status> {
         let jwt_token = self.jwt_from_header(req.metadata())?;
-        let claims: Claims = jwt_token.claims().into();
-        req.extensions_mut().insert(claims.client_pubkey);
+        let claims: Option<Claims> = jwt_token.map(|t| { t.claims().into() });
+        if let Some(claims) = claims {
+            req.extensions_mut().insert(claims.client_pubkey);
+        }
+
+        let socket_addr = req.remote_addr();
+        req.extensions_mut().insert(socket_addr);
 
         Ok(req)
     }

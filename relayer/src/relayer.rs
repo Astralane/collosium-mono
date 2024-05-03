@@ -9,6 +9,8 @@ use std::{
     thread::JoinHandle,
     time::{Duration, Instant, SystemTime},
 };
+use std::collections::BTreeSet;
+use std::net::SocketAddr;
 
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use dashmap::DashMap;
@@ -19,7 +21,7 @@ use jito_protos::{
     packet::PacketBatch as ProtoPacketBatch,
     relayer::{
         relayer_server::Relayer, subscribe_packets_response, GetTpuConfigsRequest,
-        GetTpuConfigsResponse, SubscribePacketsRequest, SubscribePacketsResponse,
+        GetTpuConfigsResponse, SubscribePacketsRequest, SubscribePacketsResponse, SubscribeClientPacketsRequest
     },
     shared::{Header, Heartbeat, Socket},
 };
@@ -365,6 +367,10 @@ pub enum Subscription {
         pubkey: Pubkey,
         sender: TokioSender<Result<SubscribePacketsResponse, Status>>,
     },
+    ClientPacketSubscription {
+        socket_addr: SocketAddr,
+        sender: TokioSender<Result<SubscribePacketsResponse, Status>>,
+    },
 }
 
 #[derive(Error, Debug)]
@@ -377,6 +383,8 @@ pub type RelayerResult<T> = Result<T, RelayerError>;
 
 type PacketSubscriptions =
     Arc<RwLock<HashMap<Pubkey, TokioSender<Result<SubscribePacketsResponse, Status>>>>>;
+type ClientPacketSubscriptions =
+Arc<RwLock<HashMap<SocketAddr, TokioSender<Result<SubscribePacketsResponse, Status>>>>>;
 pub struct RelayerHandle {
     packet_subscriptions: PacketSubscriptions,
 }
@@ -408,6 +416,7 @@ pub struct RelayerImpl {
     threads: Vec<JoinHandle<()>>,
     health_state: Arc<RwLock<HealthState>>,
     packet_subscriptions: PacketSubscriptions,
+    client_packet_subscriptions: ClientPacketSubscriptions,
 }
 
 impl RelayerImpl {
@@ -435,10 +444,12 @@ impl RelayerImpl {
             bounded(LoadBalancer::SLOT_QUEUE_CAPACITY);
 
         let packet_subscriptions = Arc::new(RwLock::new(HashMap::default()));
+        let client_packet_subscriptions = Arc::new(RwLock::new(HashMap::default()));
 
         let thread = {
             let health_state = health_state.clone();
             let packet_subscriptions = packet_subscriptions.clone();
+            let client_packet_subscriptions = client_packet_subscriptions.clone();
             thread::Builder::new()
                 .name("relayer_impl-event_loop_thread".to_string())
                 .spawn(move || {
@@ -451,6 +462,7 @@ impl RelayerImpl {
                         health_state,
                         exit,
                         &packet_subscriptions,
+                        &client_packet_subscriptions,
                         ofac_addresses,
                         address_lookup_table_cache,
                         validator_packet_batch_size,
@@ -469,6 +481,7 @@ impl RelayerImpl {
             threads: vec![thread],
             health_state,
             packet_subscriptions,
+            client_packet_subscriptions,
             seq: AtomicU64::new(0),
         }
     }
@@ -487,6 +500,7 @@ impl RelayerImpl {
         health_state: Arc<RwLock<HealthState>>,
         exit: Arc<AtomicBool>,
         packet_subscriptions: &PacketSubscriptions,
+        client_packet_subscriptions: &ClientPacketSubscriptions,
         ofac_addresses: HashSet<Pubkey>,
         address_lookup_table_cache: Arc<DashMap<Pubkey, AddressLookupTableAccount>>,
         validator_packet_batch_size: usize,
@@ -521,13 +535,13 @@ impl RelayerImpl {
                 },
                 recv(delay_packet_receiver) -> maybe_packet_batches => {
                     let start = Instant::now();
-                    let failed_forwards = Self::forward_packets(maybe_packet_batches, packet_subscriptions, &slot_leaders, &mut relayer_metrics, &ofac_addresses, &address_lookup_table_cache, validator_packet_batch_size, forward_all)?;
-                    Self::drop_connections(failed_forwards, packet_subscriptions, &mut relayer_metrics);
+                    let (failed_forwards, failed_client_forwards) = Self::forward_packets(maybe_packet_batches, packet_subscriptions, client_packet_subscriptions, &slot_leaders, &mut relayer_metrics, &ofac_addresses, &address_lookup_table_cache, validator_packet_batch_size, forward_all)?;
+                    Self::drop_connections(failed_forwards, failed_client_forwards, packet_subscriptions, client_packet_subscriptions, &mut relayer_metrics);
                     let _ = relayer_metrics.crossbeam_delay_packet_receiver_processing_us.increment(start.elapsed().as_micros() as u64);
                 },
                 recv(subscription_receiver) -> maybe_subscription => {
                     let start = Instant::now();
-                    Self::handle_subscription(maybe_subscription, packet_subscriptions, &mut relayer_metrics)?;
+                    Self::handle_subscription(maybe_subscription, packet_subscriptions, client_packet_subscriptions, &mut relayer_metrics)?;
                     let _ = relayer_metrics.crossbeam_subscription_receiver_processing_us.increment(start.elapsed().as_micros() as u64);
                 }
                 recv(heartbeat_tick) -> time_generated => {
@@ -537,16 +551,20 @@ impl RelayerImpl {
                     }
 
                     // heartbeat if state is healthy, drop all connections on unhealthy
-                    let pubkeys_to_drop = match *health_state.read().unwrap() {
+                    let (pubkeys_to_drop, sockets_to_drop) = match *health_state.read().unwrap() {
                         HealthState::Healthy => {
                             Self::handle_heartbeat(
                                 packet_subscriptions,
+                                client_packet_subscriptions,
                                 &mut relayer_metrics,
                             )
                         },
-                        HealthState::Unhealthy => packet_subscriptions.read().unwrap().keys().cloned().collect(),
+                        HealthState::Unhealthy => (
+                            packet_subscriptions.read().unwrap().keys().cloned().collect(),
+                            client_packet_subscriptions.read().unwrap().keys().cloned().collect()
+                        )
                     };
-                    Self::drop_connections(pubkeys_to_drop, packet_subscriptions, &mut relayer_metrics);
+                    Self::drop_connections(pubkeys_to_drop, sockets_to_drop, packet_subscriptions, client_packet_subscriptions, &mut relayer_metrics);
                     let _ = relayer_metrics.crossbeam_heartbeat_tick_processing_us.increment(start.elapsed().as_micros() as u64);
                 }
                 recv(metrics_tick) -> time_generated => {
@@ -581,7 +599,9 @@ impl RelayerImpl {
 
     fn drop_connections(
         disconnected_pubkeys: Vec<Pubkey>,
+        failed_client_forwards: Vec<SocketAddr>,
         subscriptions: &PacketSubscriptions,
+        client_packet_subscriptions: &ClientPacketSubscriptions,
         relayer_metrics: &mut RelayerMetrics,
     ) {
         relayer_metrics.num_removed_connections += disconnected_pubkeys.len() as u64;
@@ -596,13 +616,45 @@ impl RelayerImpl {
                 drop(sender);
             }
         }
+
+        let mut l_client_packet_subscriptions = client_packet_subscriptions.write().unwrap();
+        for disconnected in failed_client_forwards {
+            if let Some(sender) = l_client_packet_subscriptions.remove(&disconnected) {
+                drop(sender);
+            }
+        }
     }
 
     fn handle_heartbeat(
         subscriptions: &PacketSubscriptions,
+        client_packet_subscriptions: &ClientPacketSubscriptions,
         relayer_metrics: &mut RelayerMetrics,
-    ) -> Vec<Pubkey> {
+    ) -> (Vec<Pubkey>, Vec<SocketAddr>) {
         let failed_pubkey_updates = subscriptions
+            .read()
+            .unwrap()
+            .iter()
+            .filter_map(|(pubkey, sender)| {
+                // try send because it's a bounded channel and we don't want to block if the channel is full
+                match sender.try_send(Ok(SubscribePacketsResponse {
+                    header: None,
+                    msg: Some(subscribe_packets_response::Msg::Heartbeat(Heartbeat {
+                        count: relayer_metrics.num_heartbeats,
+                    })),
+                })) {
+                    Ok(_) => {}
+                    Err(TrySendError::Closed(_)) => return Some(*pubkey),
+                    Err(TrySendError::Full(_)) => {
+                        relayer_metrics.num_try_send_channel_full += 1;
+                        warn!("heartbeat channel is full for: {:?}", pubkey);
+                    }
+                }
+                None
+            })
+            .collect();
+
+
+        let failed_socket_updates = client_packet_subscriptions
             .read()
             .unwrap()
             .iter()
@@ -627,20 +679,21 @@ impl RelayerImpl {
 
         relayer_metrics.num_heartbeats += 1;
 
-        failed_pubkey_updates
+        (failed_pubkey_updates, failed_socket_updates)
     }
 
     /// Returns pubkeys of subscribers that failed to send
     fn forward_packets(
         maybe_packet_batches: Result<RelayerPacketBatches, RecvError>,
         subscriptions: &PacketSubscriptions,
+        client_packet_subscriptions: &ClientPacketSubscriptions,
         slot_leaders: &HashSet<Pubkey>,
         relayer_metrics: &mut RelayerMetrics,
         ofac_addresses: &HashSet<Pubkey>,
         address_lookup_table_cache: &Arc<DashMap<Pubkey, AddressLookupTableAccount>>,
         validator_packet_batch_size: usize,
         forward_all: bool,
-    ) -> RelayerResult<Vec<Pubkey>> {
+    ) -> RelayerResult<(Vec<Pubkey>, Vec<SocketAddr>)> {
         let packet_batches = maybe_packet_batches?;
 
         let _ = relayer_metrics
@@ -682,6 +735,13 @@ impl RelayerImpl {
         }
 
         let l_subscriptions = subscriptions.read().unwrap();
+        let l_client_packet_subscriptions = client_packet_subscriptions.read().unwrap();
+
+        let client_senders =
+            l_client_packet_subscriptions.iter().collect::<Vec<(
+                &SocketAddr,
+                &TokioSender<Result<SubscribePacketsResponse, Status>>,
+            )>>();
 
         let senders = if forward_all {
             l_subscriptions.iter().collect::<Vec<(
@@ -695,12 +755,35 @@ impl RelayerImpl {
                 .collect()
         };
 
+
         let mut failed_forwards = Vec::new();
+        let mut failed_client_forwards = Vec::new();
         for batch in &proto_packet_batches {
             // NOTE: this is important to avoid divide-by-0 inside the validator if packets
             // get routed to sigverify under the assumption theres > 0 packets in the batch
             if batch.packets.is_empty() {
                 continue;
+            }
+
+            for (socket_addr, sender) in &client_senders {
+                match sender.try_send(Ok(SubscribePacketsResponse {
+                    header: Some(Header {
+                        ts: Some(Timestamp::from(SystemTime::now())),
+                    }),
+                    msg: Some(subscribe_packets_response::Msg::Batch(batch.clone())),
+                })) {
+                    Err(TrySendError::Full(_)) => {
+                        error!("packet channel is full for client");
+                    }
+                    Err(TrySendError::Closed(_)) => {
+                        error!("channel is closed for client");
+                        failed_client_forwards.push(**socket_addr);
+                        break;
+                    }
+                    _ => {
+                        debug!("packet sent to client")
+                    }
+                }
             }
 
             for (pubkey, sender) in &senders {
@@ -728,14 +811,16 @@ impl RelayerImpl {
                 }
             }
         }
-        Ok(failed_forwards)
+        Ok((failed_forwards, failed_client_forwards))
     }
 
     fn handle_subscription(
         maybe_subscription: Result<Subscription, RecvError>,
         subscriptions: &PacketSubscriptions,
+        client_packet_subscriptions: &ClientPacketSubscriptions,
         relayer_metrics: &mut RelayerMetrics,
     ) -> RelayerResult<()> {
+
         match maybe_subscription? {
             Subscription::ValidatorPacketSubscription { pubkey, sender } => {
                 match subscriptions.write().unwrap().entry(pubkey) {
@@ -757,6 +842,9 @@ impl RelayerImpl {
                         entry.insert(sender);
                     }
                 }
+            }
+            Subscription::ClientPacketSubscription { socket_addr, sender } => {
+                client_packet_subscriptions.write().unwrap().insert(socket_addr, sender);
             }
         }
         Ok(())
@@ -820,18 +908,87 @@ impl Relayer for RelayerImpl {
     ) -> Result<Response<Self::SubscribePacketsStream>, Status> {
         Self::check_health(&self.health_state)?;
 
-        let pubkey: &Pubkey = request
+        let pubkey: Option<&Pubkey> = request
+            .extensions()
+            .get();
+
+        let (sender, receiver) = channel(RelayerImpl::SUBSCRIBER_QUEUE_CAPACITY);
+
+        if let Some(pubkey) = pubkey {
+            self.subscription_sender
+                .send(Subscription::ValidatorPacketSubscription {
+                    pubkey: *pubkey,
+                    sender,
+                })
+                .map_err(|_| Status::internal("internal error adding subscription"))?;
+        } else {
+            debug!("No pubkey provided from validator");
+            self.subscription_sender
+                .send(Subscription::ValidatorPacketSubscription {
+                    pubkey: Pubkey::default(),
+                    sender,
+                })
+                .map_err(|_| Status::internal("internal error adding subscription"))?;
+        }
+        Ok(Response::new(ReceiverStream::new(receiver)))
+    }
+
+
+    type SubscribeClientPacketsStream = ReceiverStream<Result<SubscribePacketsResponse, Status>>;
+
+    /// Validator calls this to subscribe to packets
+    async fn subscribe_client_packets(
+        &self,
+        request: Request<SubscribePacketsRequest>,
+    ) -> Result<Response<Self::SubscribeClientPacketsStream>, Status> {
+        Self::check_health(&self.health_state)?;
+
+        let socket: & Option<SocketAddr> = request
             .extensions()
             .get()
             .ok_or_else(|| Status::internal("internal error fetching public key"))?;
 
-        let (sender, receiver) = channel(RelayerImpl::SUBSCRIBER_QUEUE_CAPACITY);
-        self.subscription_sender
-            .send(Subscription::ValidatorPacketSubscription {
-                pubkey: *pubkey,
-                sender,
-            })
-            .map_err(|_| Status::internal("internal error adding subscription"))?;
-        Ok(Response::new(ReceiverStream::new(receiver)))
+        if let Some(socket_addr) = socket {
+            let (sender, receiver) = channel(RelayerImpl::SUBSCRIBER_QUEUE_CAPACITY);
+            self.subscription_sender
+                .send(Subscription::ClientPacketSubscription {
+                    socket_addr: *socket_addr,
+                    sender,
+                })
+                .map_err(|_| Status::internal("internal error adding subscription"))?;
+            Ok(Response::new(ReceiverStream::new(receiver)))
+        } else {
+            warn!("no socket address from remote client");
+            Err(Status::internal("no socket address from remote client"))
+        }
     }
+
+    // type SubscribeClientPacketsStream = ReceiverStream<Result<ProtoPacketBatch, Status>>;
+    //
+    // /// Validator calls this to subscribe to packets
+    // async fn subscribe_client_packets(
+    //     &self,
+    //     request: Request<SubscribeClientPacketsRequest>,
+    // ) -> Result<Response<Self::SubscribeClientPacketsStream>, Status> {
+    //     Self::check_health(&self.health_state)?;
+    //
+    //     let socket: & Option<SocketAddr> = request
+    //         .extensions()
+    //         .get()
+    //         .ok_or_else(|| Status::internal("internal error fetching public key"))?;
+    //
+    //     if let Some(socket_addr) = socket {
+    //         let (sender, receiver) = channel(RelayerImpl::SUBSCRIBER_QUEUE_CAPACITY);
+    //         self.subscription_sender
+    //             .send(Subscription::ClientPacketSubscription {
+    //                 socket_addr: *socket_addr,
+    //                 sender,
+    //             })
+    //             .map_err(|_| Status::internal("internal error adding subscription"))?;
+    //         Ok(Response::new(ReceiverStream::new(receiver)))
+    //     } else {
+    //         warn!("no socket address from remote client");
+    //         Err(Status::internal("no socket address from remote client"))
+    //     }
+    // }
 }

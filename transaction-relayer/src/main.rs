@@ -18,7 +18,7 @@ use clap::Parser;
 use crossbeam_channel::tick;
 use dashmap::DashMap;
 use env_logger::Env;
-use jito_block_engine::block_engine::{BlockEngineConfig, BlockEngineRelayerHandler};
+use jito_block_engine::block_engine::{BlockEngineRelayerHandler};
 use jito_core::{
     graceful_panic,
     tpu::{Tpu, TpuSockets},
@@ -50,6 +50,8 @@ use solana_sdk::{
 use solana_validator::admin_rpc_service::StakedNodesOverrides;
 use tikv_jemallocator::Jemalloc;
 use tokio::{runtime::Builder, signal, sync::mpsc::channel};
+use tonic::Request;
+use tonic::service::interceptor;
 use tonic::transport::Server;
 
 // no-op change to test ci
@@ -223,7 +225,7 @@ struct Args {
     disable_mempool: bool,
 
     /// Forward all received packets to all connected validators,
-    /// regardless of leader schedule.  
+    /// regardless of leader schedule.
     /// Note: This is required to be true for Stake Weighted Quality of Service (SWQOS)!
     #[arg(long, env, default_value_t = false)]
     forward_all: bool,
@@ -347,10 +349,10 @@ fn main() {
     please find your public ip address and pass it in on the command line",
         public_ip
     );
-    assert!(
-        !public_ip.is_loopback(),
-        "Your public IP can't be the loopback interface"
-    );
+    // assert!(
+    //     !public_ip.is_loopback(),
+    //     "Your public IP can't be the loopback interface"
+    // );
 
     // Supporting IPV6 addresses is a DOS vector since they are cheap and there's a much larger amount of them.
     // The DOS is specifically with regards to the challenges queue filling up and starving other legitimate
@@ -469,30 +471,30 @@ fn main() {
         args.disable_mempool,
         &exit,
     );
-
-    let is_connected_to_block_engine = Arc::new(AtomicBool::new(false));
-    let block_engine_config = if !args.disable_mempool && args.block_engine_url.is_some() {
-        let block_engine_url = args.block_engine_url.unwrap();
-        let auth_service_url = args
-            .block_engine_auth_service_url
-            .unwrap_or(block_engine_url.clone());
-        Some(BlockEngineConfig {
-            block_engine_url,
-            auth_service_url,
-        })
-    } else {
-        None
-    };
-    let block_engine_forwarder = BlockEngineRelayerHandler::new(
-        block_engine_config,
-        block_engine_receiver,
-        keypair,
-        exit.clone(),
-        args.aoi_cache_ttl_secs,
-        address_lookup_table_cache.clone(),
-        &is_connected_to_block_engine,
-        ofac_addresses.clone(),
-    );
+    //
+    let is_connected_to_block_engine = Arc::new(AtomicBool::new(true));
+    // let block_engine_config = if !args.disable_mempool && args.block_engine_url.is_some() {
+    //     let block_engine_url = args.block_engine_url.unwrap();
+    //     let auth_service_url = args
+    //         .block_engine_auth_service_url
+    //         .unwrap_or(block_engine_url.clone());
+    //     Some(BlockEngineConfig {
+    //         block_engine_url,
+    //         auth_service_url,
+    //     })
+    // } else {
+    //     None
+    // };
+    // let block_engine_forwarder = BlockEngineRelayerHandler::new(
+    //     block_engine_config,
+    //     block_engine_receiver,
+    //     keypair,
+    //     exit.clone(),
+    //     args.aoi_cache_ttl_secs,
+    //     address_lookup_table_cache.clone(),
+    //     &is_connected_to_block_engine,
+    //     ofac_addresses.clone(),
+    // );
 
     // receiver tracked as relayer_metrics.slot_receiver_len
     // downstream channel gets data that was duplicated by HealthManager
@@ -602,7 +604,6 @@ fn main() {
         t.join().unwrap();
     }
     lookup_table_refresher.join().unwrap();
-    block_engine_forwarder.join();
 }
 
 pub async fn shutdown_signal(exit: Arc<AtomicBool>) {

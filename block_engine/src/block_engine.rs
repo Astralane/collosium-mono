@@ -1,4 +1,4 @@
-use std::{
+/*use std::{
     collections::HashSet,
     str::FromStr,
     sync::{
@@ -25,10 +25,11 @@ use jito_protos::{
     },
     convert::packet_to_proto_packet,
     packet::PacketBatch as ProtoPacketBatch,
-    shared::{Header, Heartbeat},
+    shared::Header,
 };
 use log::{error, *};
 use prost_types::Timestamp;
+use rand::Rng;
 use solana_core::banking_trace::BankingPacketBatch;
 use solana_metrics::{datapoint_error, datapoint_info};
 use solana_sdk::{
@@ -39,10 +40,9 @@ use thiserror::Error;
 use tokio::{
     runtime::Runtime,
     select,
-    sync::mpsc::{channel, Receiver, Sender},
+    sync::{mpsc::Sender, broadcast::Receiver},
     time::{interval, sleep},
 };
-use tokio_stream::wrappers::ReceiverStream;
 use tonic::{
     codegen::InterceptedService,
     service::Interceptor,
@@ -80,6 +80,7 @@ impl Interceptor for AuthInterceptor {
     }
 }
 
+#[derive(Clone)]
 pub struct BlockEnginePackets {
     pub banking_packet_batch: BankingPacketBatch,
     pub stamp: SystemTime,
@@ -135,7 +136,7 @@ impl BlockEngineRelayerHandler {
                                 &is_connected_to_block_engine,
                                 &ofac_addresses,
                             )
-                            .await;
+                                .await;
                             is_connected_to_block_engine.store(false, Ordering::Relaxed);
 
                             if let Err(e) = result {
@@ -293,7 +294,7 @@ impl BlockEngineRelayerHandler {
             is_connected_to_block_engine,
             ofac_addresses,
         )
-        .await
+            .await
     }
 
     /// Starts the bi-directional packet stream.
@@ -324,16 +325,7 @@ impl BlockEngineRelayerHandler {
             .await
             .map_err(|e| BlockEngineError::BlockEngineFailure(e.to_string()))?;
 
-        // sender tracked as block_engine_relayer-loop_stats.block_engine_packet_sender_len
-        let (block_engine_packet_sender, block_engine_packet_receiver) =
-            channel(Self::BLOCK_ENGINE_PACKET_QUEUE_CAPACITY);
-        let _response = client
-            .start_expiring_packet_stream(ReceiverStream::new(block_engine_packet_receiver))
-            .await
-            .map_err(|e| BlockEngineError::BlockEngineFailure(e.to_string()))?;
-
         Self::handle_packet_stream(
-            block_engine_packet_sender,
             block_engine_receiver,
             subscribe_aoi_stream,
             subscribe_poi_stream,
@@ -347,12 +339,11 @@ impl BlockEngineRelayerHandler {
             is_connected_to_block_engine,
             ofac_addresses,
         )
-        .await
+            .await
     }
 
     #[allow(clippy::too_many_arguments)]
     async fn handle_packet_stream(
-        block_engine_packet_sender: Sender<PacketBatchUpdate>,
         block_engine_receiver: &mut Receiver<BlockEnginePackets>,
         subscribe_aoi_stream: Response<Streaming<AccountsOfInterestUpdate>>,
         subscribe_poi_stream: Response<Streaming<ProgramsOfInterestUpdate>>,
@@ -394,7 +385,7 @@ impl BlockEngineRelayerHandler {
 
                     let now = Instant::now();
 
-                    Self::check_and_send_heartbeat(&block_engine_packet_sender, &heartbeat_count).await?;
+                    Self::check_and_send_heartbeat(&heartbeat_count).await?;
 
                     block_engine_stats.increment_heartbeat_elapsed_us(now.elapsed().as_micros() as u64);
                     block_engine_stats.increment_heartbeat_count(1);
@@ -425,8 +416,7 @@ impl BlockEngineRelayerHandler {
                 }
                 block_engine_batches = block_engine_receiver.recv() => {
                     trace!("received block engine batches");
-                    let block_engine_batches = block_engine_batches
-                        .ok_or_else(|| BlockEngineError::BlockEngineFailure("block engine packet receiver disconnected".to_string()))?;
+                    let block_engine_batches = block_engine_batches.map_err(|_| BlockEngineError::BlockEngineFailure("block engine packet receiver disconnected".to_string()))?;
 
                     let now = Instant::now();
 
@@ -439,7 +429,10 @@ impl BlockEngineRelayerHandler {
 
                     if let Some(filtered_packets) = filtered_packets {
                         let now = Instant::now();
-                        let packet_forward_count = Self::forward_packets(&block_engine_packet_sender, filtered_packets).await?;
+                        let packet_forward_count = filtered_packets.batch.as_ref().unwrap().packets.len();
+                        // random millis between 0 and 150
+                        sleep(Duration::from_millis(rand::thread_rng().gen_range(0..150))).await;
+                        // let packet_forward_count = Self::forward_packets(&block_engine_packet_sender, filtered_packets).await?;
                         block_engine_stats.increment_packet_forward_count(packet_forward_count as u64);
                         block_engine_stats.increment_packet_forward_elapsed_us(now.elapsed().as_micros() as u64);
                     }
@@ -472,8 +465,13 @@ impl BlockEngineRelayerHandler {
                 }
             }
 
+            // random capacity between 0 and 1000
+            // 0 is the minimum capacity
+
+            let capacity = rand::thread_rng().gen_range(0..1000);
+
             block_engine_stats.update_block_engine_packet_sender_len(
-                (Self::BLOCK_ENGINE_PACKET_QUEUE_CAPACITY - block_engine_packet_sender.capacity())
+                (Self::BLOCK_ENGINE_PACKET_QUEUE_CAPACITY - capacity)
                     as u64,
             );
         }
@@ -609,7 +607,7 @@ impl BlockEngineRelayerHandler {
     }
 
     /// Forwards packets to the Block Engine
-    async fn forward_packets(
+    async fn _forward_packets(
         block_engine_packet_sender: &Sender<PacketBatchUpdate>,
         batch: ExpiringPacketBatch,
     ) -> BlockEngineResult<usize> {
@@ -651,23 +649,23 @@ impl BlockEngineRelayerHandler {
                     let is_forwardable = if ofac_addresses.is_empty() {
                         is_aoi_in_static_keys(&tx, accounts_of_interest, programs_of_interest)
                             || is_aoi_in_lookup_table(
-                                &tx,
-                                accounts_of_interest,
-                                programs_of_interest,
-                                address_lookup_table_cache,
-                            )
+                            &tx,
+                            accounts_of_interest,
+                            programs_of_interest,
+                            address_lookup_table_cache,
+                        )
                     } else {
                         !is_tx_ofac_related(&tx, ofac_addresses, address_lookup_table_cache)
                             && (is_aoi_in_static_keys(
-                                &tx,
-                                accounts_of_interest,
-                                programs_of_interest,
-                            ) || is_aoi_in_lookup_table(
-                                &tx,
-                                accounts_of_interest,
-                                programs_of_interest,
-                                address_lookup_table_cache,
-                            ))
+                            &tx,
+                            accounts_of_interest,
+                            programs_of_interest,
+                        ) || is_aoi_in_lookup_table(
+                            &tx,
+                            accounts_of_interest,
+                            programs_of_interest,
+                            address_lookup_table_cache,
+                        ))
                     };
 
                     if is_forwardable {
@@ -697,22 +695,22 @@ impl BlockEngineRelayerHandler {
     /// Checks the heartbeat timeout and errors out if the heartbeat didn't come in time.
     /// Assuming that's okay, sends a heartbeat back and if that fails, disconnect.
     async fn check_and_send_heartbeat(
-        block_engine_packet_sender: &Sender<PacketBatchUpdate>,
-        heartbeat_count: &u64,
+        // block_engine_packet_sender: &Sender<PacketBatchUpdate>,
+        _heartbeat_count: &u64,
     ) -> BlockEngineResult<()> {
-        if let Err(e) = block_engine_packet_sender
-            .send(PacketBatchUpdate {
-                msg: Some(Msg::Heartbeat(Heartbeat {
-                    count: *heartbeat_count,
-                })),
-            })
-            .await
-        {
-            error!("error sending heartbeat {}", e);
-            return Err(BlockEngineError::BlockEngineFailure(
-                "error sending heartbeat".to_string(),
-            ));
-        }
+        // if let Err(e) = block_engine_packet_sender
+        //     .send(PacketBatchUpdate {
+        //         msg: Some(Msg::Heartbeat(Heartbeat {
+        //             count: *heartbeat_count,
+        //         })),
+        //     })
+        //     .await
+        // {
+        //     error!("error sending heartbeat {}", e);
+        //     return Err(BlockEngineError::BlockEngineFailure(
+        //         "error sending heartbeat".to_string(),
+        //     ));
+        // }
 
         Ok(())
     }
@@ -749,7 +747,7 @@ fn is_aoi_in_lookup_table(
                     if let Some(writable_account) = lookup_info.addresses.get(*idx as usize) {
                         if accounts_of_interest.cache_get(writable_account).is_some()
                             // note: can't detect CPIs without execution, so aggressively forward txs than contain account in POI
-                            // also txs can say programs are write-locked, but they're demoted to read-locked when loaded. 
+                            // also txs can say programs are write-locked, but they're demoted to read-locked when loaded.
                             || programs_of_interest.cache_get(writable_account).is_some()
                         {
                             return true;
@@ -770,4 +768,97 @@ fn is_aoi_in_lookup_table(
         }
     }
     false
+}*/
+
+use std::{sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc
+}, thread::{JoinHandle}, thread, time::{SystemTime}};
+use solana_core::banking_trace::BankingPacketBatch;
+use solana_sdk::transaction::VersionedTransaction;
+
+use jito_protos::searcher::{PendingTxNotification};
+//use jito_protos::searcher::searcher_service_relayer_client::SearcherServiceRelayerClient;
+use tokio_stream::wrappers::ReceiverStream;
+use tokio::{
+    runtime::Runtime,
+    sync::mpsc::{channel, Receiver, Sender},
+};
+use jito_protos::convert::packet_to_proto_packet;
+#[derive(Clone)]
+pub struct BlockEnginePackets {
+    pub banking_packet_batch: BankingPacketBatch,
+    pub stamp: SystemTime,
+    pub expiration: u32,
+}
+
+pub struct BlockEngineRelayerHandler {
+    rcv_thread: JoinHandle<()>
+}
+
+impl BlockEngineRelayerHandler {
+    pub fn new(
+        mut block_engine_receiver: tokio::sync::broadcast::Receiver<BlockEnginePackets>,
+        exit: Arc<AtomicBool>
+    ) -> BlockEngineRelayerHandler {
+        let exit_clone = exit.clone();
+        let (packet_sender, packet_receiver) = channel(1000);
+
+        let rcv_thread = thread::Builder::new().spawn(move || {
+            let rt  = Runtime::new().expect("Failed to create Tokio runtime");
+            rt.block_on(async move {
+                //let mut client =
+                //    SearcherServiceRelayerClient::connect("http://127.0.0.1:50051").await.expect("Error connect to client");
+                //client.start_stream_transactions_to_searcher(ReceiverStream::new(packet_receiver)).await.expect("Error start streaming");
+                Self::run_rcv_loop(&mut block_engine_receiver, &exit_clone, &packet_sender).await.unwrap();
+            });
+        }).unwrap();
+
+        BlockEngineRelayerHandler{rcv_thread}
+    }
+
+    pub fn join(self) -> thread::Result<()> {
+        self.rcv_thread.join()?;
+        Ok(())
+    }
+    async fn run_rcv_loop(
+        block_engine_receiver: &mut tokio::sync::broadcast::Receiver<BlockEnginePackets>,
+        exit: &Arc<AtomicBool>,
+        packet_sender: & Sender<PendingTxNotification>
+    ) -> Result<(), String>  {
+        while block_engine_receiver.try_recv().is_ok() {}
+        while !exit.load(Ordering::Relaxed) {
+            let block_engine_batches = block_engine_receiver.recv().
+                await.
+                expect("block engine packet receiver disconnected");
+
+            for batch in &block_engine_batches.banking_packet_batch.0 {
+                /*let mut transactions = Vec::new();
+                for packet in batch {
+                   transactions.push(packet_to_proto_packet(packet).unwrap());
+                }*/
+
+                /*packet_sender.send(
+                    PendingTxNotification{ server_side_ts: None,
+                        expiration_time: None,
+                        transactions: transactions })
+                    .await.
+                    expect("error forwarding packets");*/
+
+                for packet in batch {
+                    if packet.meta().discard() {
+                        continue;
+                    }
+
+                    if let Ok(tx) = packet.deserialize_slice::<VersionedTransaction, _>(..) {
+                        //panic!("Processing transaction: {:?}", tx);
+                        println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!Processing transaction: {:?}", tx);
+                    } else {
+                        //panic!("Serialization error");
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
 }

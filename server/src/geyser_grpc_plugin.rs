@@ -328,7 +328,7 @@ impl GeyserPlugin for GeyserGrpcPlugin {
         }
 
         let transaction_update = match transaction {
-            ReplicaTransactionInfoVersions::V0_0_1(tx) => TimestampedTransactionUpdate {
+            ReplicaTransactionInfoVersions::V0_0_1(tx) if !tx.is_vote => Some(TimestampedTransactionUpdate {
                 ts: Some(prost_types::Timestamp::from(SystemTime::now())),
                 transaction: Some(TransactionUpdate {
                     slot,
@@ -340,8 +340,8 @@ impl GeyserPlugin for GeyserGrpcPlugin {
                         meta: Some(tx.transaction_status_meta.clone().into()),
                     }),
                 }),
-            },
-            ReplicaTransactionInfoVersions::V0_0_2(tx) => TimestampedTransactionUpdate {
+            }),
+            ReplicaTransactionInfoVersions::V0_0_2(tx) if !tx.is_vote => Some(TimestampedTransactionUpdate {
                 ts: Some(prost_types::Timestamp::from(SystemTime::now())),
                 transaction: Some(TransactionUpdate {
                     slot,
@@ -353,21 +353,26 @@ impl GeyserPlugin for GeyserGrpcPlugin {
                         meta: Some(tx.transaction_status_meta.clone().into()),
                     }),
                 }),
-            },
+            }),
+            _ => None,
         };
 
-        match data.transaction_update_sender.try_send(transaction_update) {
-            Ok(_) => Ok(()),
-            Err(TrySendError::Full(_)) => {
-                warn!("transaction_update_sender full");
-                Ok(())
+        if let Some(transaction_update) = transaction_update {
+            match data.transaction_update_sender.try_send(transaction_update) {
+                Ok(_) => Ok(()),
+                Err(TrySendError::Full(_)) => {
+                    warn!("transaction_update_sender full");
+                    Ok(())
+                }
+                Err(TrySendError::Disconnected(_)) => {
+                    error!("transaction_update_sender disconnected");
+                    Err(GeyserPluginError::TransactionUpdateError {
+                        msg: "transaction_update_sender channel disconnected, exiting".to_string(),
+                    })
+                }
             }
-            Err(TrySendError::Disconnected(_)) => {
-                error!("transaction_update_sender disconnected");
-                Err(GeyserPluginError::TransactionUpdateError {
-                    msg: "transaction_update_sender channel disconnected, exiting".to_string(),
-                })
-            }
+        } else {
+            Ok(()) // If it's a vote transaction, just return Ok(()) without sending it.
         }
     }
 

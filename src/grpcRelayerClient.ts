@@ -18,7 +18,7 @@ const proto = grpc.loadPackageDefinition(
 ) as unknown as ProtoGrpcType;
 
 const relayerClient = new proto.relayer.Relayer(
-  'localhost:?????',
+  'localhost:11226',
   grpc.credentials.createInsecure(),
 );
 

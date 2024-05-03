@@ -1,6 +1,6 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
-import { ProtoGrpcType } from 'src/types/geyser/geyser';
+import { ProtoGrpcType } from './types/geyser/geyser';
 
 const GEYSER_PROTO_PATH = 'src/proto/geyser/geyser.proto';
 

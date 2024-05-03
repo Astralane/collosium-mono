@@ -1,6 +1,6 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
-import { ProtoGrpcType } from 'src/types/relayer/relayer';
+import { ProtoGrpcType } from './types/relayer/relayer';
 
 const RELAYER_PROTO_PATH = 'src/proto/relayer/relayer.proto';
 

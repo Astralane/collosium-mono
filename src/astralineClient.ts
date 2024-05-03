@@ -1,12 +1,11 @@
-import { TimestampedTransactionUpdate } from 'src/types/geyser/solana/geyser/TimestampedTransactionUpdate';
 import geyserClient from './grpcGeyserClient';
 
-const web3 = require("@solana/web3.js");
-import { VersionedTransaction } from "@solana/web3.js";
-import relayerClient from "./grpcRelayerClient";
-import { SubscribePacketsResponse } from "./types/relayer/relayer/SubscribePacketsResponse";
-import { PacketBatch } from "./types/relayer/packet/PacketBatch";
-import { deserializeTransactions } from "jito-ts/dist/sdk/block-engine/utils";
+import { VersionedTransaction } from '@solana/web3.js';
+import relayerClient from './grpcRelayerClient';
+import { SubscribePacketsResponse } from './types/relayer/relayer/SubscribePacketsResponse';
+import { deserializeTransactions } from 'jito-ts/dist/sdk/block-engine/utils';
+import { TimestampedTransactionUpdate } from './types/geyser/solana/geyser/TimestampedTransactionUpdate';
+import { PacketBatch } from 'jito-ts/dist/gen/block-engine/packet';
 
 export class AstralineClient {
   registerProcessedTxCallback(
@@ -34,9 +33,9 @@ export class AstralineClient {
       if (response.batch != null) {
         const batch = response.batch as PacketBatch;
         const txs = deserializeTransactions(batch.packets);
-        txs.forEach(tx => {
+        txs.forEach((tx) => {
           unprocessedTxCallback(tx);
-        })
+        });
       }
     });
 

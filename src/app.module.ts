@@ -15,6 +15,15 @@ import { join } from 'path';
           url: '127.0.0.1:10000',
         },
       },
+      {
+        name: 'RELAYER_PACKAGE',
+        transport: Transport.GRPC,
+        options: {
+          package: 'relayer',
+          protoPath: join('src/relayer/relayer.proto'),
+          url: '127.0.0.1:11226',
+        },
+      },
     ]),
   ],
   providers: [AppService],

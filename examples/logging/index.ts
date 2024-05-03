@@ -1,9 +1,9 @@
 import { client } from '../../src/astralineClient';
 
 client.registerProcessedTxCallback((tx) => {
-  console.log('processed tx received: ' + JSON.stringify(tx));
+  console.log(`Processed tx received: ${JSON.stringify(tx)}\n`);
 });
 
 client.registerUnprocessedTxCallback((tx) => {
-  console.log('unprocessed tx received: ' + JSON.stringify(tx));
+  console.log(`Unprocessed tx received: ${JSON.stringify(tx)}\n`);
 });

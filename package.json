@@ -5,7 +5,10 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
-  "scripts": {},
+  "scripts": {
+    "build": "tsc && npm run copy-proto",
+    "copy-proto": "cp -r src/proto dist/src/proto"
+  },
   "dependencies": {
     "@grpc/grpc-js": "^1.10.7",
     "@grpc/proto-loader": "^0.7.12",

@@ -1,8 +1,11 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import { ProtoGrpcType } from './types/geyser/geyser';
+import path from 'path';
 
-const GEYSER_PROTO_PATH = 'src/proto/geyser/geyser.proto';
+const GEYSER_PROTO_PATH = path.join(__dirname, '/proto/geyser/geyser.proto');
+const GRPC_GEYSER_SERVER_ADDRESS =
+  process.env.GRPC_GEYSER_SERVER_ADDRESS || 'localhost:10000';
 
 const options = {
   keepCase: true,
@@ -18,7 +21,7 @@ const proto = grpc.loadPackageDefinition(
 ) as unknown as ProtoGrpcType;
 
 const geyserClient = new proto.solana.geyser.Geyser(
-  'localhost:10000',
+  GRPC_GEYSER_SERVER_ADDRESS,
   grpc.credentials.createInsecure(),
 );
 

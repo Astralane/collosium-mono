@@ -1,7 +1,7 @@
 // Original file: src/geyser/geyser.proto
 
 import type { Reward as _solana_storage_ConfirmedBlock_Reward, Reward__Output as _solana_storage_ConfirmedBlock_Reward__Output } from '../storage/ConfirmedBlock/Reward';
-import type { Timestamp as _google_protobuf_Timestamp, Timestamp__Output as _google_protobuf_Timestamp__Output } from '../../google/protobuf/Timestamp';
+import type { Timestamp as _google_protobuf_Timestamp, Timestamp__Output as _google_protobuf_Timestamp__Output } from '../../protobuf/Timestamp';
 import type { Long } from '@grpc/proto-loader';
 
 export interface BlockUpdate {

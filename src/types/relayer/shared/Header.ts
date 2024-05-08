@@ -1,6 +1,6 @@
 // Original file: src/relayer/shared.proto
 
-import type { Timestamp as _google_protobuf_Timestamp, Timestamp__Output as _google_protobuf_Timestamp__Output } from '../google/protobuf/Timestamp';
+import type { Timestamp as _google_protobuf_Timestamp, Timestamp__Output as _google_protobuf_Timestamp__Output } from '../protobuf/Timestamp';
 
 export interface Header {
   'ts'?: (_google_protobuf_Timestamp | null);

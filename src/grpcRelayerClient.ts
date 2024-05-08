@@ -1,8 +1,11 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import { ProtoGrpcType } from './types/relayer/relayer';
+import path from 'path';
 
-const RELAYER_PROTO_PATH = 'src/proto/relayer/relayer.proto';
+const RELAYER_PROTO_PATH = path.join(__dirname, '/proto/relayer/relayer.proto');
+const GRPC_RELAYER_SERVER_ADDRESS =
+  process.env.GRPC_RELAYER_SERVER_ADDRESS || 'localhost:11226';
 
 const options = {
   keepCase: true,
@@ -18,7 +21,7 @@ const proto = grpc.loadPackageDefinition(
 ) as unknown as ProtoGrpcType;
 
 const relayerClient = new proto.relayer.Relayer(
-  'localhost:11226',
+  GRPC_RELAYER_SERVER_ADDRESS,
   grpc.credentials.createInsecure(),
 );
 

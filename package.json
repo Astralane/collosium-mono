@@ -8,9 +8,7 @@
   "license": "ISC",
   "scripts": {
     "build": "npm run generate-grpc && tsc",
-    "generate-geyser-grpc": "protoc -I src/proto/geyser --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=forceLong=string --ts_proto_opt=outputServices=grpc-js --experimental_allow_proto3_optional --ts_proto_out=./src/grpc/geyser geyser.proto",
-    "generate-relayer-grpc": "protoc -I src/proto/relayer --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=forceLong=string --ts_proto_opt=outputServices=grpc-js --experimental_allow_proto3_optional --ts_proto_out=./src/grpc/relayer relayer.proto",
-    "generate-grpc": "npm run generate-geyser-grpc && npm run generate-relayer-grpc"
+    "generate-grpc": "protoc -I src/proto --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=forceLong=string --ts_proto_opt=outputServices=grpc-js --experimental_allow_proto3_optional --ts_proto_out=./src/grpc/ streaming_service.proto"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.10.7",

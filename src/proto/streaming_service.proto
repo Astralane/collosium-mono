@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+import "packet.proto";
+import "google/protobuf/timestamp.proto";
+import "confirmed_block.proto";
+
+package streaming_service;
+
+message TimestampedTransactionUpdate {
+  google.protobuf.Timestamp ts = 1;
+  TransactionUpdate transaction = 2;
+}
+
+message TransactionUpdate {
+  uint64 slot = 1;
+  string signature = 2;
+  bool is_vote = 3;
+  uint64 tx_idx = 4;
+  solana.storage.ConfirmedBlock.ConfirmedTransaction tx = 5;
+}
+
+message SubscribeTransactionUpdatesRequest {}
+
+message SubscribePacketsRequest {
+  string account = 1;
+}
+
+message SubscribePacketsResponse {
+  packet.PacketBatch batch = 1;
+}
+
+service StreamingService {
+  rpc SubscribeUnprocessedPackets (SubscribePacketsRequest) returns (stream SubscribePacketsResponse) {}
+  rpc SubscribeTransactionUpdates(SubscribeTransactionUpdatesRequest) returns (stream TimestampedTransactionUpdate) {}
+}

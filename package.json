@@ -1,19 +1,19 @@
 {
-  "name": "solana-streaming-client",
-  "version": "0.0.1",
+  "name": "astraline-streaming-client",
+  "version": "0.0.2",
   "description": "",
   "author": "",
-  "private": true,
-  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "license": "ISC",
   "scripts": {
-    "build": "tsc && npm run copy-proto",
-    "copy-proto": "cp -r src/proto dist/src/proto"
+    "build": "npm run generate-grpc && tsc",
+    "generate-geyser-grpc": "protoc -I src/proto/geyser --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=forceLong=string --ts_proto_opt=outputServices=grpc-js --experimental_allow_proto3_optional --ts_proto_out=./src/grpc/geyser geyser.proto",
+    "generate-relayer-grpc": "protoc -I src/proto/relayer --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=forceLong=string --ts_proto_opt=outputServices=grpc-js --experimental_allow_proto3_optional --ts_proto_out=./src/grpc/relayer relayer.proto",
+    "generate-grpc": "npm run generate-geyser-grpc && npm run generate-relayer-grpc"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.10.7",
-    "@grpc/proto-loader": "^0.7.12",
-    "@types/google-protobuf": "^3.15.12",
-    "google-protobuf": "^3.21.2",
     "jito-ts": "^3.0.1"
   },
   "devDependencies": {
@@ -26,8 +26,8 @@
     "prettier": "^3.0.0",
     "source-map-support": "^0.5.21",
     "ts-loader": "^9.4.3",
-    "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.1.3"
+    "typescript": "^5.1.3",
+    "ts-proto": "^1.139.0"
   }
 }

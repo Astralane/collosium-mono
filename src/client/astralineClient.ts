@@ -5,7 +5,7 @@ import streamingClient from './grpcStreamingServiceClient';
 import {
   SubscribePacketsResponse,
   TimestampedTransactionUpdate,
-} from 'src/grpc/streaming_service';
+} from '../grpc/streaming_service';
 
 export class AstralineClient {
   registerProcessedTxCallback(

@@ -1,22 +1,16 @@
 {
+  "extends": "./node_modules/gts/tsconfig-google.json",
   "compilerOptions": {
-    "module": "commonjs",
     "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2021",
-    "sourceMap": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
-    "skipLibCheck": true,
-    "strictNullChecks": false,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false,
-    "esModuleInterop": true
-  }
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    "resolveJsonModule": false,
+    "esModuleInterop": true,
+    "lib": ["DOM"]
+  },
+  "include": [
+    "src/**/*.ts",
+  ],
+  "exclude": ["examples"]
 }

@@ -2,16 +2,15 @@ import { VersionedTransaction } from '@solana/web3.js';
 import { deserializeTransactions } from 'jito-ts/dist/sdk/block-engine/utils';
 import { PacketBatch } from 'jito-ts/dist/gen/block-engine/packet';
 import streamingClient from './grpcStreamingServiceClient';
-import {
-  SubscribePacketsResponse,
-  TimestampedTransactionUpdate,
-} from '../grpc/streaming_service';
+import { TimestampedTransactionUpdate } from '../grpc/geyser';
+import { SubscribePacketsResponse } from '../grpc/streaming_service';
 
 export class AstralineClient {
   registerProcessedTxCallback(
+    account: string,
     processedTxCallback: (n: TimestampedTransactionUpdate) => void,
   ) {
-    const call = streamingClient.subscribeTransactionUpdates({});
+    const call = streamingClient.subscribeProcessedPackets({ account });
 
     call.on('data', processedTxCallback);
 

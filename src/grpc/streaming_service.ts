@@ -17,28 +17,10 @@ import {
   type UntypedServiceImplementation,
 } from "@grpc/grpc-js";
 import * as _m0 from "protobufjs/minimal";
-import { ConfirmedTransaction } from "./confirmed_block";
-import { Timestamp } from "./google/protobuf/timestamp";
+import { TimestampedTransactionUpdate } from "./geyser";
 import { PacketBatch } from "./packet";
-import Long = require("long");
 
 export const protobufPackage = "streaming_service";
-
-export interface TimestampedTransactionUpdate {
-  ts: Date | undefined;
-  transaction: TransactionUpdate | undefined;
-}
-
-export interface TransactionUpdate {
-  slot: string;
-  signature: string;
-  isVote: boolean;
-  txIdx: string;
-  tx: ConfirmedTransaction | undefined;
-}
-
-export interface SubscribeTransactionUpdatesRequest {
-}
 
 export interface SubscribePacketsRequest {
   account: string;
@@ -47,250 +29,6 @@ export interface SubscribePacketsRequest {
 export interface SubscribePacketsResponse {
   batch: PacketBatch | undefined;
 }
-
-function createBaseTimestampedTransactionUpdate(): TimestampedTransactionUpdate {
-  return { ts: undefined, transaction: undefined };
-}
-
-export const TimestampedTransactionUpdate = {
-  encode(message: TimestampedTransactionUpdate, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.ts !== undefined) {
-      Timestamp.encode(toTimestamp(message.ts), writer.uint32(10).fork()).ldelim();
-    }
-    if (message.transaction !== undefined) {
-      TransactionUpdate.encode(message.transaction, writer.uint32(18).fork()).ldelim();
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): TimestampedTransactionUpdate {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTimestampedTransactionUpdate();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          if (tag !== 10) {
-            break;
-          }
-
-          message.ts = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
-          continue;
-        case 2:
-          if (tag !== 18) {
-            break;
-          }
-
-          message.transaction = TransactionUpdate.decode(reader, reader.uint32());
-          continue;
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): TimestampedTransactionUpdate {
-    return {
-      ts: isSet(object.ts) ? fromJsonTimestamp(object.ts) : undefined,
-      transaction: isSet(object.transaction) ? TransactionUpdate.fromJSON(object.transaction) : undefined,
-    };
-  },
-
-  toJSON(message: TimestampedTransactionUpdate): unknown {
-    const obj: any = {};
-    if (message.ts !== undefined) {
-      obj.ts = message.ts.toISOString();
-    }
-    if (message.transaction !== undefined) {
-      obj.transaction = TransactionUpdate.toJSON(message.transaction);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<TimestampedTransactionUpdate>, I>>(base?: I): TimestampedTransactionUpdate {
-    return TimestampedTransactionUpdate.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<TimestampedTransactionUpdate>, I>>(object: I): TimestampedTransactionUpdate {
-    const message = createBaseTimestampedTransactionUpdate();
-    message.ts = object.ts ?? undefined;
-    message.transaction = (object.transaction !== undefined && object.transaction !== null)
-      ? TransactionUpdate.fromPartial(object.transaction)
-      : undefined;
-    return message;
-  },
-};
-
-function createBaseTransactionUpdate(): TransactionUpdate {
-  return { slot: "0", signature: "", isVote: false, txIdx: "0", tx: undefined };
-}
-
-export const TransactionUpdate = {
-  encode(message: TransactionUpdate, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.slot !== "0") {
-      writer.uint32(8).uint64(message.slot);
-    }
-    if (message.signature !== "") {
-      writer.uint32(18).string(message.signature);
-    }
-    if (message.isVote !== false) {
-      writer.uint32(24).bool(message.isVote);
-    }
-    if (message.txIdx !== "0") {
-      writer.uint32(32).uint64(message.txIdx);
-    }
-    if (message.tx !== undefined) {
-      ConfirmedTransaction.encode(message.tx, writer.uint32(42).fork()).ldelim();
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): TransactionUpdate {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseTransactionUpdate();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          if (tag !== 8) {
-            break;
-          }
-
-          message.slot = longToString(reader.uint64() as Long);
-          continue;
-        case 2:
-          if (tag !== 18) {
-            break;
-          }
-
-          message.signature = reader.string();
-          continue;
-        case 3:
-          if (tag !== 24) {
-            break;
-          }
-
-          message.isVote = reader.bool();
-          continue;
-        case 4:
-          if (tag !== 32) {
-            break;
-          }
-
-          message.txIdx = longToString(reader.uint64() as Long);
-          continue;
-        case 5:
-          if (tag !== 42) {
-            break;
-          }
-
-          message.tx = ConfirmedTransaction.decode(reader, reader.uint32());
-          continue;
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): TransactionUpdate {
-    return {
-      slot: isSet(object.slot) ? globalThis.String(object.slot) : "0",
-      signature: isSet(object.signature) ? globalThis.String(object.signature) : "",
-      isVote: isSet(object.isVote) ? globalThis.Boolean(object.isVote) : false,
-      txIdx: isSet(object.txIdx) ? globalThis.String(object.txIdx) : "0",
-      tx: isSet(object.tx) ? ConfirmedTransaction.fromJSON(object.tx) : undefined,
-    };
-  },
-
-  toJSON(message: TransactionUpdate): unknown {
-    const obj: any = {};
-    if (message.slot !== "0") {
-      obj.slot = message.slot;
-    }
-    if (message.signature !== "") {
-      obj.signature = message.signature;
-    }
-    if (message.isVote !== false) {
-      obj.isVote = message.isVote;
-    }
-    if (message.txIdx !== "0") {
-      obj.txIdx = message.txIdx;
-    }
-    if (message.tx !== undefined) {
-      obj.tx = ConfirmedTransaction.toJSON(message.tx);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<TransactionUpdate>, I>>(base?: I): TransactionUpdate {
-    return TransactionUpdate.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<TransactionUpdate>, I>>(object: I): TransactionUpdate {
-    const message = createBaseTransactionUpdate();
-    message.slot = object.slot ?? "0";
-    message.signature = object.signature ?? "";
-    message.isVote = object.isVote ?? false;
-    message.txIdx = object.txIdx ?? "0";
-    message.tx = (object.tx !== undefined && object.tx !== null)
-      ? ConfirmedTransaction.fromPartial(object.tx)
-      : undefined;
-    return message;
-  },
-};
-
-function createBaseSubscribeTransactionUpdatesRequest(): SubscribeTransactionUpdatesRequest {
-  return {};
-}
-
-export const SubscribeTransactionUpdatesRequest = {
-  encode(_: SubscribeTransactionUpdatesRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): SubscribeTransactionUpdatesRequest {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSubscribeTransactionUpdatesRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(_: any): SubscribeTransactionUpdatesRequest {
-    return {};
-  },
-
-  toJSON(_: SubscribeTransactionUpdatesRequest): unknown {
-    const obj: any = {};
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<SubscribeTransactionUpdatesRequest>, I>>(
-    base?: I,
-  ): SubscribeTransactionUpdatesRequest {
-    return SubscribeTransactionUpdatesRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<SubscribeTransactionUpdatesRequest>, I>>(
-    _: I,
-  ): SubscribeTransactionUpdatesRequest {
-    const message = createBaseSubscribeTransactionUpdatesRequest();
-    return message;
-  },
-};
 
 function createBaseSubscribePacketsRequest(): SubscribePacketsRequest {
   return { account: "" };
@@ -420,13 +158,12 @@ export const StreamingServiceService = {
       Buffer.from(SubscribePacketsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer) => SubscribePacketsResponse.decode(value),
   },
-  subscribeTransactionUpdates: {
-    path: "/streaming_service.StreamingService/SubscribeTransactionUpdates",
+  subscribeProcessedPackets: {
+    path: "/streaming_service.StreamingService/SubscribeProcessedPackets",
     requestStream: false,
     responseStream: true,
-    requestSerialize: (value: SubscribeTransactionUpdatesRequest) =>
-      Buffer.from(SubscribeTransactionUpdatesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer) => SubscribeTransactionUpdatesRequest.decode(value),
+    requestSerialize: (value: SubscribePacketsRequest) => Buffer.from(SubscribePacketsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer) => SubscribePacketsRequest.decode(value),
     responseSerialize: (value: TimestampedTransactionUpdate) =>
       Buffer.from(TimestampedTransactionUpdate.encode(value).finish()),
     responseDeserialize: (value: Buffer) => TimestampedTransactionUpdate.decode(value),
@@ -435,10 +172,7 @@ export const StreamingServiceService = {
 
 export interface StreamingServiceServer extends UntypedServiceImplementation {
   subscribeUnprocessedPackets: handleServerStreamingCall<SubscribePacketsRequest, SubscribePacketsResponse>;
-  subscribeTransactionUpdates: handleServerStreamingCall<
-    SubscribeTransactionUpdatesRequest,
-    TimestampedTransactionUpdate
-  >;
+  subscribeProcessedPackets: handleServerStreamingCall<SubscribePacketsRequest, TimestampedTransactionUpdate>;
 }
 
 export interface StreamingServiceClient extends Client {
@@ -451,12 +185,12 @@ export interface StreamingServiceClient extends Client {
     metadata?: Metadata,
     options?: Partial<CallOptions>,
   ): ClientReadableStream<SubscribePacketsResponse>;
-  subscribeTransactionUpdates(
-    request: SubscribeTransactionUpdatesRequest,
+  subscribeProcessedPackets(
+    request: SubscribePacketsRequest,
     options?: Partial<CallOptions>,
   ): ClientReadableStream<TimestampedTransactionUpdate>;
-  subscribeTransactionUpdates(
-    request: SubscribeTransactionUpdatesRequest,
+  subscribeProcessedPackets(
+    request: SubscribePacketsRequest,
     metadata?: Metadata,
     options?: Partial<CallOptions>,
   ): ClientReadableStream<TimestampedTransactionUpdate>;
@@ -482,37 +216,6 @@ export type DeepPartial<T> = T extends Builtin ? T
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
-
-function toTimestamp(date: Date): Timestamp {
-  const seconds = Math.trunc(date.getTime() / 1_000).toString();
-  const nanos = (date.getTime() % 1_000) * 1_000_000;
-  return { seconds, nanos };
-}
-
-function fromTimestamp(t: Timestamp): Date {
-  let millis = (globalThis.Number(t.seconds) || 0) * 1_000;
-  millis += (t.nanos || 0) / 1_000_000;
-  return new globalThis.Date(millis);
-}
-
-function fromJsonTimestamp(o: any): Date {
-  if (o instanceof globalThis.Date) {
-    return o;
-  } else if (typeof o === "string") {
-    return new globalThis.Date(o);
-  } else {
-    return fromTimestamp(Timestamp.fromJSON(o));
-  }
-}
-
-function longToString(long: Long) {
-  return long.toString();
-}
-
-if (_m0.util.Long !== Long) {
-  _m0.util.Long = Long as any;
-  _m0.configure();
-}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

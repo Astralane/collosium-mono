@@ -12,8 +12,9 @@ async function main() {
   );
   await CONNECTION.confirmTransaction(signature);
 
-  client.registerProcessedTxCallback(async () => {
-    await sendMemoTransaction(CONNECTION, FROM_KEYPAIR, 'I am memo tx');
+  client.registerProcessedTxCallback('72i21TqCQw6oTGULXHNmuHkyrzyjbsGVdem1f4mUnAMJ', async () => {
+    let tx = await sendMemoTransaction(CONNECTION, FROM_KEYPAIR, 'I am memo tx');
+    console.log("memo tx: " + tx);
     // the next line was added to avoid infinite loop
     process.exit(0);
   });

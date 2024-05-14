@@ -13,6 +13,6 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "astraline-streaming-client": "^0.0.1"
+    "@astraline/streaming-client": "^0.0.2"
   }
 }

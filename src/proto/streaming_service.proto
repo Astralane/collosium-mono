@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+import "packet.proto";
+import "geyser.proto";
+
+package streaming_service;
+
+message SubscribePacketsRequest {
+  string account = 1;
+}
+
+message SubscribePacketsResponse {
+  packet.PacketBatch batch = 1;
+}
+
+service StreamingService {
+  rpc SubscribeUnprocessedPackets (SubscribePacketsRequest) returns (stream SubscribePacketsResponse) {}
+  rpc SubscribeProcessedPackets (SubscribePacketsRequest) returns (stream solana.geyser.TimestampedTransactionUpdate) {}
+}

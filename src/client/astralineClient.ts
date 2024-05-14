@@ -1,16 +1,16 @@
-import geyserClient from './grpcGeyserClient';
 import { VersionedTransaction } from '@solana/web3.js';
-import relayerClient from './grpcRelayerClient';
 import { deserializeTransactions } from 'jito-ts/dist/sdk/block-engine/utils';
 import { PacketBatch } from 'jito-ts/dist/gen/block-engine/packet';
-import { TimestampedTransactionUpdate } from 'src/grpc/geyser/geyser';
-import { SubscribePacketsResponse } from 'src/grpc/relayer/relayer';
+import streamingClient from './grpcStreamingServiceClient';
+import { TimestampedTransactionUpdate } from '../grpc/geyser';
+import { SubscribePacketsResponse } from '../grpc/streaming_service';
 
 export class AstralineClient {
   registerProcessedTxCallback(
+    account: string,
     processedTxCallback: (n: TimestampedTransactionUpdate) => void,
   ) {
-    const call = geyserClient.subscribeTransactionUpdates({});
+    const call = streamingClient.subscribeProcessedPackets({ account });
 
     call.on('data', processedTxCallback);
 
@@ -24,9 +24,10 @@ export class AstralineClient {
   }
 
   registerUnprocessedTxCallback(
+    account: string,
     unprocessedTxCallback: (n: VersionedTransaction) => void,
   ) {
-    const call = relayerClient.subscribeClientPackets({});
+    const call = streamingClient.subscribeUnprocessedPackets({ account });
 
     call.on('data', (response: SubscribePacketsResponse) => {
       if (response.batch != null) {

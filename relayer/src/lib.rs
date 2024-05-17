@@ -4,3 +4,4 @@ pub mod auth_service;
 pub mod health_manager;
 pub mod relayer;
 pub mod schedule_cache;
+pub mod client_packet_sender;

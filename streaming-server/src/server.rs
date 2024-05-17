@@ -3,6 +3,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use bincode::Options;
+use itertools::Itertools;
 use solana_program::pubkey::Pubkey;
 use solana_sdk::packet::PACKET_DATA_SIZE;
 use solana_sdk::transaction::VersionedTransaction;
@@ -17,8 +18,8 @@ use jito_protos::streaming_service::streaming_service_server::StreamingService;
 use jito_protos::streaming_service::SubscribePacketsRequest;
 use jito_protos::streaming_service::SubscribePacketsResponse;
 
-type ProcessedSelectorsMap = Arc<Mutex<HashMap<Pubkey, Sender<Result<TimestampedTransactionUpdate, Status>>>>>;
-type UnprocessedSelectorsMap = Arc<Mutex<HashMap<Pubkey, Sender<Result<SubscribePacketsResponse, Status>>>>>;
+type ProcessedSelectorsMap = Arc<Mutex<HashMap<Pubkey, Vec<Sender<Result<TimestampedTransactionUpdate, Status>>>>>>;
+type UnprocessedSelectorsMap = Arc<Mutex<HashMap<Pubkey, Vec<Sender<Result<SubscribePacketsResponse, Status>>>>>>;
 
 pub struct StreamingServerImpl {
     processed_selectors: ProcessedSelectorsMap,
@@ -46,12 +47,11 @@ impl StreamingServerImpl {
             tokio::select! {
                 geyser_packet = geyser_subscription.message() => {
                     let resp = geyser_packet.unwrap().unwrap();
-                    let mut failed_processed_senders = HashSet::new();
 
                     let mut map_mut = self.processed_selectors.lock().await;
                     let map = map_mut.clone();
 
-                    for (k, v) in map.iter() {
+                    for (k, senders) in map.iter() {
                         let resp = resp.clone();
                         let keys = resp.clone()
                             .transaction.unwrap()
@@ -62,19 +62,21 @@ impl StreamingServerImpl {
 
                         for pubkey in keys {
                             let pubkey: Pubkey = pubkey.try_into().unwrap();
+                            let mut failed_processed_senders = HashSet::new();
                             if *k == pubkey {
-                                v.send(Ok(resp.clone())).await.unwrap_or_else(|_| {
-                                    failed_processed_senders.insert(k);
-
-                                });
-                                break;
+                                for (i, sender) in senders.iter().enumerate() {
+                                    sender.send(Ok(resp.clone())).await.unwrap_or_else(|_| {
+                                        failed_processed_senders.insert(i);
+                                    });
+                                }
                             }
-                        }
-                    }
 
-                    for failed_sender in failed_processed_senders {
-                        if let Some(sender) = map_mut.remove(&failed_sender) {
-                            drop(sender);
+                            let mut sorted_indices: Vec<_> = failed_processed_senders.into_iter().collect();
+                            sorted_indices.sort_unstable_by(|a, b| b.cmp(a));
+                            for index in sorted_indices {
+                                let sender = map_mut.entry(*k).or_insert_with(Vec::new).remove(index);
+                                drop(sender);
+                            }
                         }
                     }
                 }
@@ -96,27 +98,30 @@ impl StreamingServerImpl {
                                         .deserialize(&packet.clone().data).unwrap();
 
                                     for pubkey in tx.message.static_account_keys() {
-                                        let mut failed_unprocessed_senders = HashSet::new();
-                                        for (k, v) in map.iter() {
+                                        for (k, senders) in map.iter() {
+                                            let mut failed_unprocessed_senders = HashSet::new();
                                             if k == pubkey {
-                                                v.send(Ok(
-                                                        SubscribePacketsResponse {
-                                                            batch: Some(jito_protos::packet::PacketBatch {
-                                                                packets: vec![packet.clone()],
-                                                            })
-                                                        }
-                                                    )).await.unwrap_or_else(|_| {
-                                                    failed_unprocessed_senders.insert(k);
-                                                });
-                                                break;
+                                                for (i, sender) in senders.iter().enumerate() {
+                                                    sender.send(Ok(
+                                                            SubscribePacketsResponse {
+                                                                batch: Some(jito_protos::packet::PacketBatch {
+                                                                    packets: vec![packet.clone()],
+                                                                })
+                                                            }
+                                                        )).await.unwrap_or_else(|_| {
+                                                        failed_unprocessed_senders.insert(i);
+                                                    });
+                                                }
                                             }
-                                        }
-
-                                        for failed_sender in failed_unprocessed_senders {
-                                            if let Some(sender) = map_mut.remove(&failed_sender) {
+                                            let mut sorted_indices: Vec<_> = failed_unprocessed_senders.into_iter().collect();
+                                            sorted_indices.sort_unstable_by(|a, b| b.cmp(a));
+                                            for index in sorted_indices {
+                                                let sender = map_mut.entry(*k).or_insert_with(Vec::new).remove(index);
                                                 drop(sender);
                                             }
                                         }
+
+
                                     }
                                 }
                             }
@@ -156,7 +161,10 @@ impl StreamingService for StreamingServerImpl {
 
         let (sender, receiver) = channel(50_000);
 
-        self.unprocessed_selectors.lock().await.insert(Pubkey::from_str(&request.account).unwrap(), sender);
+        self.unprocessed_selectors.lock().await
+            .entry(Pubkey::from_str(&request.account).unwrap())
+            .or_insert_with(Vec::new)
+            .push(sender);
 
         Ok(Response::new(ReceiverStream::new(receiver)))
     }
@@ -173,7 +181,10 @@ impl StreamingService for StreamingServerImpl {
 
         let (sender, receiver) = channel(50_000);
 
-        self.processed_selectors.lock().await.insert(Pubkey::from_str(&request.account).unwrap(), sender);
+        self.processed_selectors.lock().await
+            .entry(Pubkey::from_str(&request.account).unwrap())
+            .or_insert_with(Vec::new)
+            .push(sender);
 
         Ok(Response::new(ReceiverStream::new(receiver)))
     }

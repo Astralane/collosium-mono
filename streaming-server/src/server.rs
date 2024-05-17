@@ -161,10 +161,12 @@ impl StreamingService for StreamingServerImpl {
 
         let (sender, receiver) = channel(50_000);
 
-        self.unprocessed_selectors.lock().await
-            .entry(Pubkey::from_str(&request.account).unwrap())
-            .or_insert_with(Vec::new)
-            .push(sender);
+        for account in request.accounts {
+            self.unprocessed_selectors.lock().await
+                .entry(Pubkey::from_str(&account).unwrap())
+                .or_insert_with(Vec::new)
+                .push(sender.clone());
+        }
 
         Ok(Response::new(ReceiverStream::new(receiver)))
     }
@@ -181,10 +183,12 @@ impl StreamingService for StreamingServerImpl {
 
         let (sender, receiver) = channel(50_000);
 
-        self.processed_selectors.lock().await
-            .entry(Pubkey::from_str(&request.account).unwrap())
-            .or_insert_with(Vec::new)
-            .push(sender);
+        for account in request.accounts.iter() {
+            self.processed_selectors.lock().await
+                .entry(Pubkey::from_str(account).unwrap())
+                .or_insert_with(Vec::new)
+                .push(sender.clone());
+        }
 
         Ok(Response::new(ReceiverStream::new(receiver)))
     }

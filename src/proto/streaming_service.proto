@@ -6,7 +6,8 @@ import "geyser.proto";
 package streaming_service;
 
 message SubscribePacketsRequest {
-  string account = 1;
+  string api_key = 1;
+  string account = 2;
 }
 
 message SubscribePacketsResponse {

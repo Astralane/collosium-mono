@@ -1,9 +1,10 @@
 import { Connection, Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { sendMemoTransaction } from './utils';
-import { client } from "@astraline/streaming-client";
+import { AstralineClient } from "@astraline/streaming-client";
 
 const CONNECTION = new Connection('http://127.0.0.1:8899', 'confirmed');
 const FROM_KEYPAIR = new Keypair();
+const client = new AstralineClient('key_1');
 
 async function main() {
   const signature = await CONNECTION.requestAirdrop(

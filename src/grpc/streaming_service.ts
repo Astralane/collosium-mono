@@ -23,6 +23,7 @@ import { PacketBatch } from "./packet";
 export const protobufPackage = "streaming_service";
 
 export interface SubscribePacketsRequest {
+  apiKey: string;
   account: string;
 }
 
@@ -31,13 +32,16 @@ export interface SubscribePacketsResponse {
 }
 
 function createBaseSubscribePacketsRequest(): SubscribePacketsRequest {
-  return { account: "" };
+  return { apiKey: "", account: "" };
 }
 
 export const SubscribePacketsRequest = {
   encode(message: SubscribePacketsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.apiKey !== "") {
+      writer.uint32(10).string(message.apiKey);
+    }
     if (message.account !== "") {
-      writer.uint32(10).string(message.account);
+      writer.uint32(18).string(message.account);
     }
     return writer;
   },
@@ -54,6 +58,13 @@ export const SubscribePacketsRequest = {
             break;
           }
 
+          message.apiKey = reader.string();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
           message.account = reader.string();
           continue;
       }
@@ -66,11 +77,17 @@ export const SubscribePacketsRequest = {
   },
 
   fromJSON(object: any): SubscribePacketsRequest {
-    return { account: isSet(object.account) ? globalThis.String(object.account) : "" };
+    return {
+      apiKey: isSet(object.apiKey) ? globalThis.String(object.apiKey) : "",
+      account: isSet(object.account) ? globalThis.String(object.account) : "",
+    };
   },
 
   toJSON(message: SubscribePacketsRequest): unknown {
     const obj: any = {};
+    if (message.apiKey !== "") {
+      obj.apiKey = message.apiKey;
+    }
     if (message.account !== "") {
       obj.account = message.account;
     }
@@ -82,6 +99,7 @@ export const SubscribePacketsRequest = {
   },
   fromPartial<I extends Exact<DeepPartial<SubscribePacketsRequest>, I>>(object: I): SubscribePacketsRequest {
     const message = createBaseSubscribePacketsRequest();
+    message.apiKey = object.apiKey ?? "";
     message.account = object.account ?? "";
     return message;
   },

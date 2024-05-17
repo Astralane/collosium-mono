@@ -6,11 +6,16 @@ import { TimestampedTransactionUpdate } from '../grpc/geyser';
 import { SubscribePacketsResponse } from '../grpc/streaming_service';
 
 export class AstralineClient {
+  constructor(private readonly apiKey: string) {}
+
   registerProcessedTxCallback(
     account: string,
     processedTxCallback: (n: TimestampedTransactionUpdate) => void,
   ) {
-    const call = streamingClient.subscribeProcessedPackets({ account });
+    const call = streamingClient.subscribeProcessedPackets({
+      account,
+      apiKey: this.apiKey,
+    });
 
     call.on('data', processedTxCallback);
 
@@ -27,7 +32,10 @@ export class AstralineClient {
     account: string,
     unprocessedTxCallback: (n: VersionedTransaction) => void,
   ) {
-    const call = streamingClient.subscribeUnprocessedPackets({ account });
+    const call = streamingClient.subscribeUnprocessedPackets({
+      account,
+      apiKey: this.apiKey,
+    });
 
     call.on('data', (response: SubscribePacketsResponse) => {
       if (response.batch != null) {
@@ -49,5 +57,7 @@ export class AstralineClient {
   }
 }
 
-const client = new AstralineClient();
-export { client };
+export default AstralineClient;
+
+// const client = AstralineClient();
+// export { client };

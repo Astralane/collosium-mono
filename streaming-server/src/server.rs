@@ -23,14 +23,17 @@ type UnprocessedSelectorsMap = Arc<Mutex<HashMap<Pubkey, Sender<Result<Subscribe
 pub struct StreamingServerImpl {
     processed_selectors: ProcessedSelectorsMap,
     unprocessed_selectors: UnprocessedSelectorsMap,
+    valid_api_keys: HashSet<String>,
 }
 
 impl StreamingServerImpl {
     pub fn new(processed_selectors: ProcessedSelectorsMap,
-               unprocessed_selectors: UnprocessedSelectorsMap) -> Self {
+               unprocessed_selectors: UnprocessedSelectorsMap,
+               valid_api_keys: HashSet<String>) -> Self {
         StreamingServerImpl {
             processed_selectors,
             unprocessed_selectors,
+            valid_api_keys,
         }
     }
 
@@ -134,6 +137,7 @@ impl Clone for StreamingServerImpl {
         StreamingServerImpl {
             processed_selectors: self.processed_selectors.clone(),
             unprocessed_selectors: self.unprocessed_selectors.clone(),
+            valid_api_keys: self.valid_api_keys.clone(),
         }
     }
 }
@@ -145,6 +149,10 @@ impl StreamingService for StreamingServerImpl {
     async fn subscribe_unprocessed_packets(&self, request: Request<SubscribePacketsRequest>) -> Result<Response<Self::SubscribeUnprocessedPacketsStream>, Status> {
         println!("Received unprocessed subscribe request: {:?}", request);
         let request = request.into_inner();
+
+        if !self.valid_api_keys.contains(&request.api_key) {
+            return Err(Status::unauthenticated("Invalid API Key"));
+        }
 
         let (sender, receiver) = channel(50_000);
 
@@ -158,6 +166,10 @@ impl StreamingService for StreamingServerImpl {
     async fn subscribe_processed_packets(&self, request: Request<SubscribePacketsRequest>) -> Result<Response<Self::SubscribeProcessedPacketsStream>, Status> {
         println!("Received processed subscribe request: {:?}", request);
         let request = request.into_inner();
+
+        if !self.valid_api_keys.contains(&request.api_key) {
+            return Err(Status::unauthenticated("Invalid API Key"));
+        }
 
         let (sender, receiver) = channel(50_000);
 

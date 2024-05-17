@@ -1,2 +1,2 @@
-import { client } from './client/astralineClient';
-export { client };
+import { AstralineClient } from './client/astralineClient';
+export { AstralineClient };

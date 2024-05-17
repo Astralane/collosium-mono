@@ -9,11 +9,11 @@ export class AstralineClient {
   constructor(private readonly apiKey: string) {}
 
   registerProcessedTxCallback(
-    account: string,
+    accounts: string[],
     processedTxCallback: (n: TimestampedTransactionUpdate) => void,
   ) {
     const call = streamingClient.subscribeProcessedPackets({
-      account,
+      accounts,
       apiKey: this.apiKey,
     });
 
@@ -29,11 +29,11 @@ export class AstralineClient {
   }
 
   registerUnprocessedTxCallback(
-    account: string,
+    accounts: string[],
     unprocessedTxCallback: (n: VersionedTransaction) => void,
   ) {
     const call = streamingClient.subscribeUnprocessedPackets({
-      account,
+      accounts,
       apiKey: this.apiKey,
     });
 
@@ -58,6 +58,3 @@ export class AstralineClient {
 }
 
 export default AstralineClient;
-
-// const client = AstralineClient();
-// export { client };

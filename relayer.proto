@@ -12,6 +12,7 @@ message GetTpuConfigsResponse {
 }
 
 message SubscribePacketsRequest {}
+message SubscribeClientPacketsRequest {}
 message SubscribePacketsResponse {
   shared.Header header = 1;
   oneof msg {
@@ -32,4 +33,8 @@ service Relayer {
   // Validators can subscribe to packets from the relayer and receive a multiplexed signal that contains a mixture
   // of packets and heartbeats
   rpc SubscribePackets (SubscribePacketsRequest) returns (stream SubscribePacketsResponse) {}
+
+//  rpc SubscribeClientPackets (SubscribeClientPacketsRequest) returns (stream packet.PacketBatch) {}
+
+  rpc SubscribeClientPackets (SubscribePacketsRequest) returns (stream SubscribePacketsResponse) {}
 }

@@ -1,0 +1,2117 @@
+Subject: [PATCH] fix: fix ts docs for sendBundle method
+feat: add ability to not send tip transaction in bundle
+fix: change memo-bundles example to send tx and memo instead of two memo txs
+feat: add frontrunning example (fore every tx send bundle (tx + memo tx))
+add example for sending bundles
+---
+Index: examples/memo-bundles/.gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/examples/memo-bundles/.gitignore b/examples/memo-bundles/.gitignore
+new file mode 100644
+--- /dev/null	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
++++ b/examples/memo-bundles/.gitignore	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
+@@ -0,0 +1,1 @@
++/node_modules
+\ No newline at end of file
+Index: examples/memo-bundles/index.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/examples/memo-bundles/index.ts b/examples/memo-bundles/index.ts
+new file mode 100644
+--- /dev/null	(revision 9c5163ed2adffa99f274b03ae47bd8c21f4ae3ce)
++++ b/examples/memo-bundles/index.ts	(revision 9c5163ed2adffa99f274b03ae47bd8c21f4ae3ce)
+@@ -0,0 +1,31 @@
++import { client } from '../../src/astralineClient';
++import { bundleClient } from '../../src/bundleClient';
++import { createMemoTransaction } from "./utils"
++import { Connection, Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js';
++
++const CONNECTION = new Connection('http://127.0.0.1:8899', 'confirmed');
++const FROM_KEYPAIR = new Keypair();
++
++async function main() {
++
++    const signature = await CONNECTION.requestAirdrop(
++        FROM_KEYPAIR.publicKey,
++        10 * LAMPORTS_PER_SOL,
++    );
++    await CONNECTION.confirmTransaction(signature);
++
++    client.registerProcessedTxCallback((tx) => {
++        console.log(`Processed tx received: ${JSON.stringify(tx)}\n`);
++    });
++
++    client.registerUnprocessedTxCallback(async (tx) => {
++        console.log(`Unprocessed tx received: ${JSON.stringify(tx)}\n`);
++        let memoTx = await createMemoTransaction(CONNECTION, FROM_KEYPAIR, "memo tx :D");
++        bundleClient.sendBundle([tx, memoTx], FROM_KEYPAIR, FROM_KEYPAIR.publicKey, 100);
++    });
++
++
++    console.log("Registered all callbacks, listening...");
++}
++
++main();
+Index: examples/memo-bundles/package-lock.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/examples/memo-bundles/package-lock.json b/examples/memo-bundles/package-lock.json
+new file mode 100644
+--- /dev/null	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
++++ b/examples/memo-bundles/package-lock.json	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
+@@ -0,0 +1,29 @@
++{
++  "name": "logging",
++  "version": "1.0.0",
++  "lockfileVersion": 3,
++  "requires": true,
++  "packages": {
++    "": {
++      "name": "logging",
++      "version": "1.0.0",
++      "license": "ISC",
++      "devDependencies": {
++        "typescript": "^5.4.5"
++      }
++    },
++    "node_modules/typescript": {
++      "version": "5.4.5",
++      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.4.5.tgz",
++      "integrity": "sha512-vcI4UpRgg81oIRUFwR0WSIHKt11nJ7SAVlYNIu+QpqeyXP+gpQJy/Z4+F0aGxSE4MqwjyXvW/TzgkLAx2AGHwQ==",
++      "dev": true,
++      "bin": {
++        "tsc": "bin/tsc",
++        "tsserver": "bin/tsserver"
++      },
++      "engines": {
++        "node": ">=14.17"
++      }
++    }
++  }
++}
+Index: examples/memo-bundles/package.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/examples/memo-bundles/package.json b/examples/memo-bundles/package.json
+new file mode 100644
+--- /dev/null	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
++++ b/examples/memo-bundles/package.json	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
+@@ -0,0 +1,15 @@
++{
++  "name": "logging",
++  "version": "1.0.0",
++  "main": "index.js",
++  "scripts": {
++    "test": "echo \"Error: no test specified\" && exit 1"
++  },
++  "keywords": [],
++  "author": "",
++  "license": "ISC",
++  "description": "",
++  "devDependencies": {
++    "typescript": "^5.4.5"
++  }
++}
+Index: examples/memo-bundles/readme.md
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/examples/memo-bundles/readme.md b/examples/memo-bundles/readme.md
+new file mode 100644
+--- /dev/null	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
++++ b/examples/memo-bundles/readme.md	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
+@@ -0,0 +1,2 @@
++npx tsc
++node dist/index.js
+\ No newline at end of file
+Index: examples/memo-bundles/tsconfig.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/examples/memo-bundles/tsconfig.json b/examples/memo-bundles/tsconfig.json
+new file mode 100644
+--- /dev/null	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
++++ b/examples/memo-bundles/tsconfig.json	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
+@@ -0,0 +1,11 @@
++{
++  "compilerOptions": {
++    "module": "commonjs",
++    "esModuleInterop": true,
++    "target": "es6",
++    "moduleResolution": "node",
++    "sourceMap": true,
++    "outDir": "dist"
++  },
++  "lib": ["es2015"]
++}
+Index: examples/memo-bundles/utils.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/examples/memo-bundles/utils.ts b/examples/memo-bundles/utils.ts
+new file mode 100644
+--- /dev/null	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
++++ b/examples/memo-bundles/utils.ts	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
+@@ -0,0 +1,41 @@
++import {
++    Keypair,
++    PublicKey,
++    Connection,
++    VersionedTransaction,
++    TransactionInstruction,
++    TransactionMessage,
++} from '@solana/web3.js';
++
++const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
++
++export async function createMemoTransaction(
++    connection: Connection,
++    fromKeypair: Keypair,
++    message: string,
++): Promise<VersionedTransaction> {
++    let blockhash = await connection
++        .getLatestBlockhash()
++        .then(res => res.blockhash);
++
++    let instructions = [new TransactionInstruction({
++        keys: [
++            { pubkey: fromKeypair.publicKey, isSigner: true, isWritable: true },
++        ],
++        data: Buffer.from(message, 'utf-8'),
++        programId: new PublicKey(MEMO_PROGRAM_ID),
++    })];
++
++    const messageV0 = new TransactionMessage({
++        payerKey: fromKeypair.publicKey,
++        recentBlockhash: blockhash,
++        instructions,
++    }).compileToV0Message();
++
++    const transaction = new VersionedTransaction(messageV0);
++
++    // sign your transaction with the required `Signers`
++    transaction.sign([fromKeypair]);
++
++    return transaction;
++}
+Index: examples/callback-transaction/utils.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/examples/callback-transaction/utils.ts b/examples/callback-transaction/utils.ts
+--- a/examples/callback-transaction/utils.ts	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
++++ b/examples/callback-transaction/utils.ts	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -1,31 +1,31 @@
+ import {
+-  Connection,
+-  Keypair,
+-  PublicKey,
+-  Transaction,
+-  TransactionInstruction,
+-  sendAndConfirmTransaction,
++    Connection,
++    Keypair,
++    PublicKey,
++    Transaction,
++    TransactionInstruction,
++    sendAndConfirmTransaction,
+ } from '@solana/web3.js';
+ 
+ const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
+ 
+ export async function sendMemoTransaction(
+-  connection: Connection,
+-  fromKeypair: Keypair,
+-  message: string,
++    connection: Connection,
++    fromKeypair: Keypair,
++    message: string,
+ ): Promise<string> {
+-  const tx = new Transaction();
++    const tx = new Transaction();
+ 
+-  tx.add(
+-    new TransactionInstruction({
+-      keys: [
+-        { pubkey: fromKeypair.publicKey, isSigner: true, isWritable: true },
+-      ],
+-      data: Buffer.from(message, 'utf-8'),
+-      programId: new PublicKey(MEMO_PROGRAM_ID),
+-    }),
+-  );
++    tx.add(
++        new TransactionInstruction({
++            keys: [
++                { pubkey: fromKeypair.publicKey, isSigner: true, isWritable: true },
++            ],
++            data: Buffer.from(message, 'utf-8'),
++            programId: new PublicKey(MEMO_PROGRAM_ID),
++        }),
++    );
+ 
+-  const result = await sendAndConfirmTransaction(connection, tx, [fromKeypair]);
+-  return result;
++    const result = await sendAndConfirmTransaction(connection, tx, [fromKeypair]);
++    return result;
+ }
+Index: examples/logging/index.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/examples/logging/index.ts b/examples/logging/index.ts
+--- a/examples/logging/index.ts	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
++++ b/examples/logging/index.ts	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -7,3 +7,6 @@
+ client.registerUnprocessedTxCallback((tx) => {
+   console.log(`Unprocessed tx received: ${JSON.stringify(tx)}\n`);
+ });
++
++
++console.log("Registered all callbacks, listening...");
+Index: package-lock.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/package-lock.json b/package-lock.json
+--- a/package-lock.json	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
++++ b/package-lock.json	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -23,9 +23,12 @@
+         "eslint-config-prettier": "^9.0.0",
+         "eslint-plugin-prettier": "^5.0.0",
+         "prettier": "^3.0.0",
++        "protoc-gen-ts": "^0.8.7",
+         "source-map-support": "^0.5.21",
+         "ts-loader": "^9.4.3",
+         "ts-node": "^10.9.1",
++        "ts-proto": "~1.138.0",
++        "ts-protoc-gen": "~0.15.0",
+         "tsconfig-paths": "^4.2.0",
+         "typescript": "^5.1.3"
+       }
+@@ -570,6 +573,12 @@
+       "resolved": "https://registry.npmjs.org/@types/json-schema/-/json-schema-7.0.15.tgz",
+       "integrity": "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==",
+       "dev": true
++    },
++    "node_modules/@types/long": {
++      "version": "4.0.2",
++      "resolved": "https://registry.npmjs.org/@types/long/-/long-4.0.2.tgz",
++      "integrity": "sha512-MqTGEo5bj5t157U6fA/BiDynNkn0YknVdh48CMPkTSpFTVmvao5UQmm7uEF6xBEo7qIMAlY/JSleYaE6VOdpaA==",
++      "dev": true
+     },
+     "node_modules/@types/node": {
+       "version": "20.12.7",
+@@ -579,6 +588,12 @@
+         "undici-types": "~5.26.4"
+       }
+     },
++    "node_modules/@types/object-hash": {
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/@types/object-hash/-/object-hash-1.3.4.tgz",
++      "integrity": "sha512-xFdpkAkikBgqBdG9vIlsqffDV8GpvnPEzs0IUtr1v3BEB97ijsFQ4RXVbUZwjFThhB4MDSTUfvmxUD5PGx0wXA==",
++      "dev": true
++    },
+     "node_modules/@types/semver": {
+       "version": "7.5.8",
+       "resolved": "https://registry.npmjs.org/@types/semver/-/semver-7.5.8.tgz",
+@@ -1260,6 +1275,18 @@
+       ],
+       "peer": true
+     },
++    "node_modules/case-anything": {
++      "version": "2.1.13",
++      "resolved": "https://registry.npmjs.org/case-anything/-/case-anything-2.1.13.tgz",
++      "integrity": "sha512-zlOQ80VrQ2Ue+ymH5OuM/DlDq64mEm+B9UTdHULv5osUMD6HalNTblf2b1u/m6QecjsnOkBpqVZ+XPwIVsy7Ng==",
++      "dev": true,
++      "engines": {
++        "node": ">=12.13"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/mesqueeb"
++      }
++    },
+     "node_modules/chalk": {
+       "version": "4.1.2",
+       "resolved": "https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz",
+@@ -1362,6 +1389,12 @@
+         "node": ">= 8"
+       }
+     },
++    "node_modules/dataloader": {
++      "version": "1.4.0",
++      "resolved": "https://registry.npmjs.org/dataloader/-/dataloader-1.4.0.tgz",
++      "integrity": "sha512-68s5jYdlvasItOJnCuI2Q9s4q98g0pCyL3HrcKJu8KNugUl8ahgmZYg38ysLTgQjjXX3H8CJLkAvWrclWfcalw==",
++      "dev": true
++    },
+     "node_modules/debug": {
+       "version": "4.3.4",
+       "resolved": "https://registry.npmjs.org/debug/-/debug-4.3.4.tgz",
+@@ -1396,6 +1429,18 @@
+         "url": "https://github.com/sponsors/sindresorhus"
+       }
+     },
++    "node_modules/detect-libc": {
++      "version": "1.0.3",
++      "resolved": "https://registry.npmjs.org/detect-libc/-/detect-libc-1.0.3.tgz",
++      "integrity": "sha512-pGjwhsmsp4kL2RTz08wcOlGN83otlqHeD/Z5T8GXZB+/YcpQ/dgo+lbU8ZsGxV0HIvqqxo9l7mqYwyYMD9bKDg==",
++      "dev": true,
++      "bin": {
++        "detect-libc": "bin/detect-libc.js"
++      },
++      "engines": {
++        "node": ">=0.10"
++      }
++    },
+     "node_modules/diff": {
+       "version": "4.0.2",
+       "resolved": "https://registry.npmjs.org/diff/-/diff-4.0.2.tgz",
+@@ -1440,6 +1485,15 @@
+         "url": "https://dotenvx.com"
+       }
+     },
++    "node_modules/dprint-node": {
++      "version": "1.0.8",
++      "resolved": "https://registry.npmjs.org/dprint-node/-/dprint-node-1.0.8.tgz",
++      "integrity": "sha512-iVKnUtYfGrYcW1ZAlfR/F59cUVL8QIhWoBJoSjkkdua/dkWIgjZfiLMeTjiB06X0ZLkQ0M2C1VbUj/CxkIf1zg==",
++      "dev": true,
++      "dependencies": {
++        "detect-libc": "^1.0.3"
++      }
++    },
+     "node_modules/electron-to-chromium": {
+       "version": "1.4.749",
+       "resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.4.749.tgz",
+@@ -2504,6 +2558,15 @@
+       "dev": true,
+       "peer": true
+     },
++    "node_modules/object-hash": {
++      "version": "1.3.1",
++      "resolved": "https://registry.npmjs.org/object-hash/-/object-hash-1.3.1.tgz",
++      "integrity": "sha512-OSuu/pU4ENM9kmREg0BdNrUDIl1heYa4mBZacJc+vVWz4GtAwu7jO8s4AIt2aGRUTqxykpWzI3Oqnsm13tTMDA==",
++      "dev": true,
++      "engines": {
++        "node": ">= 0.10.0"
++      }
++    },
+     "node_modules/once": {
+       "version": "1.4.0",
+       "resolved": "https://registry.npmjs.org/once/-/once-1.4.0.tgz",
+@@ -2674,6 +2737,19 @@
+         "node": ">=12.0.0"
+       }
+     },
++    "node_modules/protoc-gen-ts": {
++      "version": "0.8.7",
++      "resolved": "https://registry.npmjs.org/protoc-gen-ts/-/protoc-gen-ts-0.8.7.tgz",
++      "integrity": "sha512-jr4VJey2J9LVYCV7EVyVe53g1VMw28cCmYJhBe5e3YX5wiyiDwgxWxeDf9oTqAe4P1bN/YGAkW2jhlH8LohwiQ==",
++      "dev": true,
++      "bin": {
++        "protoc-gen-ts": "protoc-gen-ts.js"
++      },
++      "funding": {
++        "type": "individual",
++        "url": "https://www.buymeacoffee.com/thesayyn"
++      }
++    },
+     "node_modules/punycode": {
+       "version": "2.3.1",
+       "resolved": "https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz",
+@@ -3254,6 +3330,119 @@
+         }
+       }
+     },
++    "node_modules/ts-poet": {
++      "version": "6.9.0",
++      "resolved": "https://registry.npmjs.org/ts-poet/-/ts-poet-6.9.0.tgz",
++      "integrity": "sha512-roe6W6MeZmCjRmppyfOURklO5tQFQ6Sg7swURKkwYJvV7dbGCrK28um5+51iW3twdPRKtwarqFAVMU6G1mvnuQ==",
++      "dev": true,
++      "dependencies": {
++        "dprint-node": "^1.0.8"
++      }
++    },
++    "node_modules/ts-proto": {
++      "version": "1.138.0",
++      "resolved": "https://registry.npmjs.org/ts-proto/-/ts-proto-1.138.0.tgz",
++      "integrity": "sha512-C12rKQdzV2/7ncusEkcyO6Z3EK+04TfZSVdRwmhwkrNcwcktm3Azg7NKBpDTgvpktGQ4nTTPRSlO5CGTkx1zJg==",
++      "dev": true,
++      "dependencies": {
++        "@types/object-hash": "^1.3.0",
++        "case-anything": "^2.1.10",
++        "dataloader": "^1.4.0",
++        "object-hash": "^1.3.1",
++        "protobufjs": "^6.11.3",
++        "ts-poet": "^6.2.0",
++        "ts-proto-descriptors": "1.7.1"
++      },
++      "bin": {
++        "protoc-gen-ts_proto": "protoc-gen-ts_proto"
++      }
++    },
++    "node_modules/ts-proto-descriptors": {
++      "version": "1.7.1",
++      "resolved": "https://registry.npmjs.org/ts-proto-descriptors/-/ts-proto-descriptors-1.7.1.tgz",
++      "integrity": "sha512-oIKUh3K4Xts4v29USGLfUG+2mEk32MsqpgZAOUyUlkrcIdv34yE+k2oZ2Nzngm6cV/JgFdOxRCqeyvmWHuYAyw==",
++      "dev": true,
++      "dependencies": {
++        "long": "^4.0.0",
++        "protobufjs": "^6.8.8"
++      }
++    },
++    "node_modules/ts-proto-descriptors/node_modules/long": {
++      "version": "4.0.0",
++      "resolved": "https://registry.npmjs.org/long/-/long-4.0.0.tgz",
++      "integrity": "sha512-XsP+KhQif4bjX1kbuSiySJFNAehNxgLb6hPRGJ9QsUr8ajHkuXGdrHmFUTUUXhDwVX2R5bY4JNZEwbUiMhV+MA==",
++      "dev": true
++    },
++    "node_modules/ts-proto-descriptors/node_modules/protobufjs": {
++      "version": "6.11.4",
++      "resolved": "https://registry.npmjs.org/protobufjs/-/protobufjs-6.11.4.tgz",
++      "integrity": "sha512-5kQWPaJHi1WoCpjTGszzQ32PG2F4+wRY6BmAT4Vfw56Q2FZ4YZzK20xUYQH4YkfehY1e6QSICrJquM6xXZNcrw==",
++      "dev": true,
++      "hasInstallScript": true,
++      "dependencies": {
++        "@protobufjs/aspromise": "^1.1.2",
++        "@protobufjs/base64": "^1.1.2",
++        "@protobufjs/codegen": "^2.0.4",
++        "@protobufjs/eventemitter": "^1.1.0",
++        "@protobufjs/fetch": "^1.1.0",
++        "@protobufjs/float": "^1.0.2",
++        "@protobufjs/inquire": "^1.1.0",
++        "@protobufjs/path": "^1.1.2",
++        "@protobufjs/pool": "^1.1.0",
++        "@protobufjs/utf8": "^1.1.0",
++        "@types/long": "^4.0.1",
++        "@types/node": ">=13.7.0",
++        "long": "^4.0.0"
++      },
++      "bin": {
++        "pbjs": "bin/pbjs",
++        "pbts": "bin/pbts"
++      }
++    },
++    "node_modules/ts-proto/node_modules/long": {
++      "version": "4.0.0",
++      "resolved": "https://registry.npmjs.org/long/-/long-4.0.0.tgz",
++      "integrity": "sha512-XsP+KhQif4bjX1kbuSiySJFNAehNxgLb6hPRGJ9QsUr8ajHkuXGdrHmFUTUUXhDwVX2R5bY4JNZEwbUiMhV+MA==",
++      "dev": true
++    },
++    "node_modules/ts-proto/node_modules/protobufjs": {
++      "version": "6.11.4",
++      "resolved": "https://registry.npmjs.org/protobufjs/-/protobufjs-6.11.4.tgz",
++      "integrity": "sha512-5kQWPaJHi1WoCpjTGszzQ32PG2F4+wRY6BmAT4Vfw56Q2FZ4YZzK20xUYQH4YkfehY1e6QSICrJquM6xXZNcrw==",
++      "dev": true,
++      "hasInstallScript": true,
++      "dependencies": {
++        "@protobufjs/aspromise": "^1.1.2",
++        "@protobufjs/base64": "^1.1.2",
++        "@protobufjs/codegen": "^2.0.4",
++        "@protobufjs/eventemitter": "^1.1.0",
++        "@protobufjs/fetch": "^1.1.0",
++        "@protobufjs/float": "^1.0.2",
++        "@protobufjs/inquire": "^1.1.0",
++        "@protobufjs/path": "^1.1.2",
++        "@protobufjs/pool": "^1.1.0",
++        "@protobufjs/utf8": "^1.1.0",
++        "@types/long": "^4.0.1",
++        "@types/node": ">=13.7.0",
++        "long": "^4.0.0"
++      },
++      "bin": {
++        "pbjs": "bin/pbjs",
++        "pbts": "bin/pbts"
++      }
++    },
++    "node_modules/ts-protoc-gen": {
++      "version": "0.15.0",
++      "resolved": "https://registry.npmjs.org/ts-protoc-gen/-/ts-protoc-gen-0.15.0.tgz",
++      "integrity": "sha512-TycnzEyrdVDlATJ3bWFTtra3SCiEP0W0vySXReAuEygXCUr1j2uaVyL0DhzjwuUdQoW5oXPwk6oZWeA0955V+g==",
++      "dev": true,
++      "dependencies": {
++        "google-protobuf": "^3.15.5"
++      },
++      "bin": {
++        "protoc-gen-ts": "bin/protoc-gen-ts"
++      }
++    },
+     "node_modules/tsconfig-paths": {
+       "version": "4.2.0",
+       "resolved": "https://registry.npmjs.org/tsconfig-paths/-/tsconfig-paths-4.2.0.tgz",
+Index: package.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/package.json b/package.json
+--- a/package.json	(revision 95fd3389a43bf929ab60f2a282412e0b91ae7ce8)
++++ b/package.json	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -24,6 +24,9 @@
+     "eslint-config-prettier": "^9.0.0",
+     "eslint-plugin-prettier": "^5.0.0",
+     "prettier": "^3.0.0",
++    "protoc-gen-ts": "^0.8.7",
++    "ts-proto": "~1.138.0",
++    "ts-protoc-gen": "~0.15.0",
+     "source-map-support": "^0.5.21",
+     "ts-loader": "^9.4.3",
+     "ts-node": "^10.9.1",
+Index: src/bundleClient.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/bundleClient.ts b/src/bundleClient.ts
+new file mode 100644
+--- /dev/null	(revision 6d36f411ba5617afc56d5172e36c8913990cec38)
++++ b/src/bundleClient.ts	(revision 6d36f411ba5617afc56d5172e36c8913990cec38)
+@@ -0,0 +1,43 @@
++import { BundleExchangeClient } from "./grpcBundleClient/bundle_exchange"
++import { ChannelCredentials } from "@grpc/grpc-js";
++import * as web3 from '@solana/web3.js';
++import { Bundle } from "./types/bundle/bundle";
++
++const bundleExchangeClient = new BundleExchangeClient('127.0.0.1:50051',
++    ChannelCredentials.createInsecure());
++
++const connection = new web3.Connection(
++    "http://127.0.0.1:8899"
++);
++
++export class BundleClient {
++    /**
++     * send bundle that contains all transactions from 'txs' array and tip transaction from 'tipPayer' to 'tipAccount'
++     * if you don't want to send tip transaction, just pass the same account as 'tipPayer' and 'tipAccount'
++     */
++    async sendBundle(txs: web3.VersionedTransaction[], tipPayer: web3.Keypair, tipAccount: web3.PublicKey, tipAmount: number) {
++        const resp = await connection.getLatestBlockhash('processed');
++        console.log("created bundle");
++        let bundle = new Bundle(txs, 10);
++
++        if (!tipPayer.publicKey.equals(tipAccount)) {
++            console.log("adding tip tx")
++            let mayBeBundle = bundle.addTipTx(tipPayer, tipAmount, tipAccount, resp.blockhash);
++            if (mayBeBundle instanceof Error) {
++                throw mayBeBundle;
++            }
++            bundle = mayBeBundle;
++        }
++
++        console.log("sending bundle to validator");
++        bundleExchangeClient.sendBundle(bundle, (error, response) => {
++            if (error != null) {
++                console.log(error);
++            }
++            console.log(response);
++        });
++    }
++}
++
++const bundleClient = new BundleClient();
++export { bundleClient };
+Index: src/grpcBundleClient/bundle.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/grpcBundleClient/bundle.ts b/src/grpcBundleClient/bundle.ts
+new file mode 100644
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/grpcBundleClient/bundle.ts	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,163 @@
++/* eslint-disable */
++import _m0 from "protobufjs/minimal";
++import { Packet } from "./packet";
++import { Header } from "./shared";
++
++export const protobufPackage = "bundle";
++
++export interface Bundle {
++  header: Header | undefined;
++  packets: Packet[];
++}
++
++export interface BundleUuid {
++  bundle: Bundle | undefined;
++  uuid: string;
++}
++
++function createBaseBundle(): Bundle {
++  return { header: undefined, packets: [] };
++}
++
++export const Bundle = {
++  encode(message: Bundle, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
++    if (message.header !== undefined) {
++      Header.encode(message.header, writer.uint32(18).fork()).ldelim();
++    }
++    for (const v of message.packets) {
++      Packet.encode(v!, writer.uint32(26).fork()).ldelim();
++    }
++    return writer;
++  },
++
++  decode(input: _m0.Reader | Uint8Array, length?: number): Bundle {
++    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
++    let end = length === undefined ? reader.len : reader.pos + length;
++    const message = createBaseBundle();
++    while (reader.pos < end) {
++      const tag = reader.uint32();
++      switch (tag >>> 3) {
++        case 2:
++          message.header = Header.decode(reader, reader.uint32());
++          break;
++        case 3:
++          message.packets.push(Packet.decode(reader, reader.uint32()));
++          break;
++        default:
++          reader.skipType(tag & 7);
++          break;
++      }
++    }
++    return message;
++  },
++
++  fromJSON(object: any): Bundle {
++    return {
++      header: isSet(object.header) ? Header.fromJSON(object.header) : undefined,
++      packets: Array.isArray(object?.packets) ? object.packets.map((e: any) => Packet.fromJSON(e)) : [],
++    };
++  },
++
++  toJSON(message: Bundle): unknown {
++    const obj: any = {};
++    message.header !== undefined && (obj.header = message.header ? Header.toJSON(message.header) : undefined);
++    if (message.packets) {
++      obj.packets = message.packets.map((e) => e ? Packet.toJSON(e) : undefined);
++    } else {
++      obj.packets = [];
++    }
++    return obj;
++  },
++
++  create<I extends Exact<DeepPartial<Bundle>, I>>(base?: I): Bundle {
++    return Bundle.fromPartial(base ?? {});
++  },
++
++  fromPartial<I extends Exact<DeepPartial<Bundle>, I>>(object: I): Bundle {
++    const message = createBaseBundle();
++    message.header = (object.header !== undefined && object.header !== null)
++      ? Header.fromPartial(object.header)
++      : undefined;
++    message.packets = object.packets?.map((e) => Packet.fromPartial(e)) || [];
++    return message;
++  },
++};
++
++function createBaseBundleUuid(): BundleUuid {
++  return { bundle: undefined, uuid: "" };
++}
++
++export const BundleUuid = {
++  encode(message: BundleUuid, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
++    if (message.bundle !== undefined) {
++      Bundle.encode(message.bundle, writer.uint32(10).fork()).ldelim();
++    }
++    if (message.uuid !== "") {
++      writer.uint32(18).string(message.uuid);
++    }
++    return writer;
++  },
++
++  decode(input: _m0.Reader | Uint8Array, length?: number): BundleUuid {
++    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
++    let end = length === undefined ? reader.len : reader.pos + length;
++    const message = createBaseBundleUuid();
++    while (reader.pos < end) {
++      const tag = reader.uint32();
++      switch (tag >>> 3) {
++        case 1:
++          message.bundle = Bundle.decode(reader, reader.uint32());
++          break;
++        case 2:
++          message.uuid = reader.string();
++          break;
++        default:
++          reader.skipType(tag & 7);
++          break;
++      }
++    }
++    return message;
++  },
++
++  fromJSON(object: any): BundleUuid {
++    return {
++      bundle: isSet(object.bundle) ? Bundle.fromJSON(object.bundle) : undefined,
++      uuid: isSet(object.uuid) ? String(object.uuid) : "",
++    };
++  },
++
++  toJSON(message: BundleUuid): unknown {
++    const obj: any = {};
++    message.bundle !== undefined && (obj.bundle = message.bundle ? Bundle.toJSON(message.bundle) : undefined);
++    message.uuid !== undefined && (obj.uuid = message.uuid);
++    return obj;
++  },
++
++  create<I extends Exact<DeepPartial<BundleUuid>, I>>(base?: I): BundleUuid {
++    return BundleUuid.fromPartial(base ?? {});
++  },
++
++  fromPartial<I extends Exact<DeepPartial<BundleUuid>, I>>(object: I): BundleUuid {
++    const message = createBaseBundleUuid();
++    message.bundle = (object.bundle !== undefined && object.bundle !== null)
++      ? Bundle.fromPartial(object.bundle)
++      : undefined;
++    message.uuid = object.uuid ?? "";
++    return message;
++  },
++};
++
++type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
++
++export type DeepPartial<T> = T extends Builtin ? T
++  : T extends Array<infer U> ? Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
++  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
++  : Partial<T>;
++
++type KeysOfUnion<T> = T extends T ? keyof T : never;
++export type Exact<P, I extends P> = P extends Builtin ? P
++  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
++
++function isSet(value: any): boolean {
++  return value !== null && value !== undefined;
++}
+Index: src/grpcBundleClient/bundle_exchange.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/grpcBundleClient/bundle_exchange.ts b/src/grpcBundleClient/bundle_exchange.ts
+new file mode 100644
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/grpcBundleClient/bundle_exchange.ts	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,130 @@
++/* eslint-disable */
++import {
++  CallOptions,
++  ChannelCredentials,
++  Client,
++  ClientOptions,
++  ClientUnaryCall,
++  handleUnaryCall,
++  makeGenericClientConstructor,
++  Metadata,
++  ServiceError,
++  UntypedServiceImplementation,
++} from "@grpc/grpc-js";
++import _m0 from "protobufjs/minimal";
++import { Bundle } from "./bundle";
++
++export const protobufPackage = "bundle_exchange";
++
++export interface BundleExchangeResponse {
++  uuid: string;
++}
++
++function createBaseBundleExchangeResponse(): BundleExchangeResponse {
++  return { uuid: "" };
++}
++
++export const BundleExchangeResponse = {
++  encode(message: BundleExchangeResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
++    if (message.uuid !== "") {
++      writer.uint32(10).string(message.uuid);
++    }
++    return writer;
++  },
++
++  decode(input: _m0.Reader | Uint8Array, length?: number): BundleExchangeResponse {
++    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
++    let end = length === undefined ? reader.len : reader.pos + length;
++    const message = createBaseBundleExchangeResponse();
++    while (reader.pos < end) {
++      const tag = reader.uint32();
++      switch (tag >>> 3) {
++        case 1:
++          message.uuid = reader.string();
++          break;
++        default:
++          reader.skipType(tag & 7);
++          break;
++      }
++    }
++    return message;
++  },
++
++  fromJSON(object: any): BundleExchangeResponse {
++    return { uuid: isSet(object.uuid) ? String(object.uuid) : "" };
++  },
++
++  toJSON(message: BundleExchangeResponse): unknown {
++    const obj: any = {};
++    message.uuid !== undefined && (obj.uuid = message.uuid);
++    return obj;
++  },
++
++  create<I extends Exact<DeepPartial<BundleExchangeResponse>, I>>(base?: I): BundleExchangeResponse {
++    return BundleExchangeResponse.fromPartial(base ?? {});
++  },
++
++  fromPartial<I extends Exact<DeepPartial<BundleExchangeResponse>, I>>(object: I): BundleExchangeResponse {
++    const message = createBaseBundleExchangeResponse();
++    message.uuid = object.uuid ?? "";
++    return message;
++  },
++};
++
++export type BundleExchangeService = typeof BundleExchangeService;
++export const BundleExchangeService = {
++  sendBundle: {
++    path: "/bundle_exchange.BundleExchange/SendBundle",
++    requestStream: false,
++    responseStream: false,
++    requestSerialize: (value: Bundle) => Buffer.from(Bundle.encode(value).finish()),
++    requestDeserialize: (value: Buffer) => Bundle.decode(value),
++    responseSerialize: (value: BundleExchangeResponse) => Buffer.from(BundleExchangeResponse.encode(value).finish()),
++    responseDeserialize: (value: Buffer) => BundleExchangeResponse.decode(value),
++  },
++} as const;
++
++export interface BundleExchangeServer extends UntypedServiceImplementation {
++  sendBundle: handleUnaryCall<Bundle, BundleExchangeResponse>;
++}
++
++export interface BundleExchangeClient extends Client {
++  sendBundle(
++    request: Bundle,
++    callback: (error: ServiceError | null, response: BundleExchangeResponse) => void,
++  ): ClientUnaryCall;
++  sendBundle(
++    request: Bundle,
++    metadata: Metadata,
++    callback: (error: ServiceError | null, response: BundleExchangeResponse) => void,
++  ): ClientUnaryCall;
++  sendBundle(
++    request: Bundle,
++    metadata: Metadata,
++    options: Partial<CallOptions>,
++    callback: (error: ServiceError | null, response: BundleExchangeResponse) => void,
++  ): ClientUnaryCall;
++}
++
++export const BundleExchangeClient = makeGenericClientConstructor(
++  BundleExchangeService,
++  "bundle_exchange.BundleExchange",
++) as unknown as {
++  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): BundleExchangeClient;
++  service: typeof BundleExchangeService;
++};
++
++type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
++
++export type DeepPartial<T> = T extends Builtin ? T
++  : T extends Array<infer U> ? Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
++  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
++  : Partial<T>;
++
++type KeysOfUnion<T> = T extends T ? keyof T : never;
++export type Exact<P, I extends P> = P extends Builtin ? P
++  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
++
++function isSet(value: any): boolean {
++  return value !== null && value !== undefined;
++}
+Index: src/grpcBundleClient/google/protobuf/timestamp.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/grpcBundleClient/google/protobuf/timestamp.ts b/src/grpcBundleClient/google/protobuf/timestamp.ts
+new file mode 100644
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/grpcBundleClient/google/protobuf/timestamp.ts	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,220 @@
++/* eslint-disable */
++import Long from "long";
++import _m0 from "protobufjs/minimal";
++
++export const protobufPackage = "google.protobuf";
++
++/**
++ * A Timestamp represents a point in time independent of any time zone or local
++ * calendar, encoded as a count of seconds and fractions of seconds at
++ * nanosecond resolution. The count is relative to an epoch at UTC midnight on
++ * January 1, 1970, in the proleptic Gregorian calendar which extends the
++ * Gregorian calendar backwards to year one.
++ *
++ * All minutes are 60 seconds long. Leap seconds are "smeared" so that no leap
++ * second table is needed for interpretation, using a [24-hour linear
++ * smear](https://developers.google.com/time/smear).
++ *
++ * The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By
++ * restricting to that range, we ensure that we can convert to and from [RFC
++ * 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.
++ *
++ * # Examples
++ *
++ * Example 1: Compute Timestamp from POSIX `time()`.
++ *
++ *     Timestamp timestamp;
++ *     timestamp.set_seconds(time(NULL));
++ *     timestamp.set_nanos(0);
++ *
++ * Example 2: Compute Timestamp from POSIX `gettimeofday()`.
++ *
++ *     struct timeval tv;
++ *     gettimeofday(&tv, NULL);
++ *
++ *     Timestamp timestamp;
++ *     timestamp.set_seconds(tv.tv_sec);
++ *     timestamp.set_nanos(tv.tv_usec * 1000);
++ *
++ * Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.
++ *
++ *     FILETIME ft;
++ *     GetSystemTimeAsFileTime(&ft);
++ *     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;
++ *
++ *     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z
++ *     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.
++ *     Timestamp timestamp;
++ *     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));
++ *     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));
++ *
++ * Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.
++ *
++ *     long millis = System.currentTimeMillis();
++ *
++ *     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)
++ *         .setNanos((int) ((millis % 1000) * 1000000)).build();
++ *
++ * Example 5: Compute Timestamp from Java `Instant.now()`.
++ *
++ *     Instant now = Instant.now();
++ *
++ *     Timestamp timestamp =
++ *         Timestamp.newBuilder().setSeconds(now.getEpochSecond())
++ *             .setNanos(now.getNano()).build();
++ *
++ * Example 6: Compute Timestamp from current time in Python.
++ *
++ *     timestamp = Timestamp()
++ *     timestamp.GetCurrentTime()
++ *
++ * # JSON Mapping
++ *
++ * In JSON format, the Timestamp type is encoded as a string in the
++ * [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the
++ * format is "{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z"
++ * where {year} is always expressed using four digits while {month}, {day},
++ * {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional
++ * seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),
++ * are optional. The "Z" suffix indicates the timezone ("UTC"); the timezone
++ * is required. A proto3 JSON serializer should always use UTC (as indicated by
++ * "Z") when printing the Timestamp type and a proto3 JSON parser should be
++ * able to accept both UTC and other timezones (as indicated by an offset).
++ *
++ * For example, "2017-01-15T01:30:15.01Z" encodes 15.01 seconds past
++ * 01:30 UTC on January 15, 2017.
++ *
++ * In JavaScript, one can convert a Date object to this format using the
++ * standard
++ * [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)
++ * method. In Python, a standard `datetime.datetime` object can be converted
++ * to this format using
++ * [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with
++ * the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use
++ * the Joda Time's [`ISODateTimeFormat.dateTime()`](
++ * http://www.joda.org/joda-time/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime%2D%2D
++ * ) to obtain a formatter capable of generating timestamps in this format.
++ */
++export interface Timestamp {
++  /**
++   * Represents seconds of UTC time since Unix epoch
++   * 1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z to
++   * 9999-12-31T23:59:59Z inclusive.
++   */
++  seconds: number;
++  /**
++   * Non-negative fractions of a second at nanosecond resolution. Negative
++   * second values with fractions must still have non-negative nanos values
++   * that count forward in time. Must be from 0 to 999,999,999
++   * inclusive.
++   */
++  nanos: number;
++}
++
++function createBaseTimestamp(): Timestamp {
++  return { seconds: 0, nanos: 0 };
++}
++
++export const Timestamp = {
++  encode(message: Timestamp, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
++    if (message.seconds !== 0) {
++      writer.uint32(8).int64(message.seconds);
++    }
++    if (message.nanos !== 0) {
++      writer.uint32(16).int32(message.nanos);
++    }
++    return writer;
++  },
++
++  decode(input: _m0.Reader | Uint8Array, length?: number): Timestamp {
++    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
++    let end = length === undefined ? reader.len : reader.pos + length;
++    const message = createBaseTimestamp();
++    while (reader.pos < end) {
++      const tag = reader.uint32();
++      switch (tag >>> 3) {
++        case 1:
++          message.seconds = longToNumber(reader.int64() as Long);
++          break;
++        case 2:
++          message.nanos = reader.int32();
++          break;
++        default:
++          reader.skipType(tag & 7);
++          break;
++      }
++    }
++    return message;
++  },
++
++  fromJSON(object: any): Timestamp {
++    return {
++      seconds: isSet(object.seconds) ? Number(object.seconds) : 0,
++      nanos: isSet(object.nanos) ? Number(object.nanos) : 0,
++    };
++  },
++
++  toJSON(message: Timestamp): unknown {
++    const obj: any = {};
++    message.seconds !== undefined && (obj.seconds = Math.round(message.seconds));
++    message.nanos !== undefined && (obj.nanos = Math.round(message.nanos));
++    return obj;
++  },
++
++  create<I extends Exact<DeepPartial<Timestamp>, I>>(base?: I): Timestamp {
++    return Timestamp.fromPartial(base ?? {});
++  },
++
++  fromPartial<I extends Exact<DeepPartial<Timestamp>, I>>(object: I): Timestamp {
++    const message = createBaseTimestamp();
++    message.seconds = object.seconds ?? 0;
++    message.nanos = object.nanos ?? 0;
++    return message;
++  },
++};
++
++declare var self: any | undefined;
++declare var window: any | undefined;
++declare var global: any | undefined;
++var tsProtoGlobalThis: any = (() => {
++  if (typeof globalThis !== "undefined") {
++    return globalThis;
++  }
++  if (typeof self !== "undefined") {
++    return self;
++  }
++  if (typeof window !== "undefined") {
++    return window;
++  }
++  if (typeof global !== "undefined") {
++    return global;
++  }
++  throw "Unable to locate global object";
++})();
++
++type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
++
++export type DeepPartial<T> = T extends Builtin ? T
++  : T extends Array<infer U> ? Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
++  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
++  : Partial<T>;
++
++type KeysOfUnion<T> = T extends T ? keyof T : never;
++export type Exact<P, I extends P> = P extends Builtin ? P
++  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
++
++function longToNumber(long: Long): number {
++  if (long.gt(Number.MAX_SAFE_INTEGER)) {
++    throw new tsProtoGlobalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
++  }
++  return long.toNumber();
++}
++
++if (_m0.util.Long !== Long) {
++  _m0.util.Long = Long as any;
++  _m0.configure();
++}
++
++function isSet(value: any): boolean {
++  return value !== null && value !== undefined;
++}
+Index: src/grpcBundleClient/packet.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/grpcBundleClient/packet.ts b/src/grpcBundleClient/packet.ts
+new file mode 100644
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/grpcBundleClient/packet.ts	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,399 @@
++/* eslint-disable */
++import Long from "long";
++import _m0 from "protobufjs/minimal";
++
++export const protobufPackage = "packet";
++
++export interface PacketBatch {
++  packets: Packet[];
++}
++
++export interface Packet {
++  data: Uint8Array;
++  meta: Meta | undefined;
++}
++
++export interface Meta {
++  size: number;
++  addr: string;
++  port: number;
++  flags: PacketFlags | undefined;
++  senderStake: number;
++}
++
++export interface PacketFlags {
++  discard: boolean;
++  forwarded: boolean;
++  repair: boolean;
++  simpleVoteTx: boolean;
++  tracerPacket: boolean;
++}
++
++function createBasePacketBatch(): PacketBatch {
++  return { packets: [] };
++}
++
++export const PacketBatch = {
++  encode(message: PacketBatch, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
++    for (const v of message.packets) {
++      Packet.encode(v!, writer.uint32(10).fork()).ldelim();
++    }
++    return writer;
++  },
++
++  decode(input: _m0.Reader | Uint8Array, length?: number): PacketBatch {
++    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
++    let end = length === undefined ? reader.len : reader.pos + length;
++    const message = createBasePacketBatch();
++    while (reader.pos < end) {
++      const tag = reader.uint32();
++      switch (tag >>> 3) {
++        case 1:
++          message.packets.push(Packet.decode(reader, reader.uint32()));
++          break;
++        default:
++          reader.skipType(tag & 7);
++          break;
++      }
++    }
++    return message;
++  },
++
++  fromJSON(object: any): PacketBatch {
++    return { packets: Array.isArray(object?.packets) ? object.packets.map((e: any) => Packet.fromJSON(e)) : [] };
++  },
++
++  toJSON(message: PacketBatch): unknown {
++    const obj: any = {};
++    if (message.packets) {
++      obj.packets = message.packets.map((e) => e ? Packet.toJSON(e) : undefined);
++    } else {
++      obj.packets = [];
++    }
++    return obj;
++  },
++
++  create<I extends Exact<DeepPartial<PacketBatch>, I>>(base?: I): PacketBatch {
++    return PacketBatch.fromPartial(base ?? {});
++  },
++
++  fromPartial<I extends Exact<DeepPartial<PacketBatch>, I>>(object: I): PacketBatch {
++    const message = createBasePacketBatch();
++    message.packets = object.packets?.map((e) => Packet.fromPartial(e)) || [];
++    return message;
++  },
++};
++
++function createBasePacket(): Packet {
++  return { data: new Uint8Array(), meta: undefined };
++}
++
++export const Packet = {
++  encode(message: Packet, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
++    if (message.data.length !== 0) {
++      writer.uint32(10).bytes(message.data);
++    }
++    if (message.meta !== undefined) {
++      Meta.encode(message.meta, writer.uint32(18).fork()).ldelim();
++    }
++    return writer;
++  },
++
++  decode(input: _m0.Reader | Uint8Array, length?: number): Packet {
++    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
++    let end = length === undefined ? reader.len : reader.pos + length;
++    const message = createBasePacket();
++    while (reader.pos < end) {
++      const tag = reader.uint32();
++      switch (tag >>> 3) {
++        case 1:
++          message.data = reader.bytes();
++          break;
++        case 2:
++          message.meta = Meta.decode(reader, reader.uint32());
++          break;
++        default:
++          reader.skipType(tag & 7);
++          break;
++      }
++    }
++    return message;
++  },
++
++  fromJSON(object: any): Packet {
++    return {
++      data: isSet(object.data) ? bytesFromBase64(object.data) : new Uint8Array(),
++      meta: isSet(object.meta) ? Meta.fromJSON(object.meta) : undefined,
++    };
++  },
++
++  toJSON(message: Packet): unknown {
++    const obj: any = {};
++    message.data !== undefined &&
++      (obj.data = base64FromBytes(message.data !== undefined ? message.data : new Uint8Array()));
++    message.meta !== undefined && (obj.meta = message.meta ? Meta.toJSON(message.meta) : undefined);
++    return obj;
++  },
++
++  create<I extends Exact<DeepPartial<Packet>, I>>(base?: I): Packet {
++    return Packet.fromPartial(base ?? {});
++  },
++
++  fromPartial<I extends Exact<DeepPartial<Packet>, I>>(object: I): Packet {
++    const message = createBasePacket();
++    message.data = object.data ?? new Uint8Array();
++    message.meta = (object.meta !== undefined && object.meta !== null) ? Meta.fromPartial(object.meta) : undefined;
++    return message;
++  },
++};
++
++function createBaseMeta(): Meta {
++  return { size: 0, addr: "", port: 0, flags: undefined, senderStake: 0 };
++}
++
++export const Meta = {
++  encode(message: Meta, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
++    if (message.size !== 0) {
++      writer.uint32(8).uint64(message.size);
++    }
++    if (message.addr !== "") {
++      writer.uint32(18).string(message.addr);
++    }
++    if (message.port !== 0) {
++      writer.uint32(24).uint32(message.port);
++    }
++    if (message.flags !== undefined) {
++      PacketFlags.encode(message.flags, writer.uint32(34).fork()).ldelim();
++    }
++    if (message.senderStake !== 0) {
++      writer.uint32(40).uint64(message.senderStake);
++    }
++    return writer;
++  },
++
++  decode(input: _m0.Reader | Uint8Array, length?: number): Meta {
++    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
++    let end = length === undefined ? reader.len : reader.pos + length;
++    const message = createBaseMeta();
++    while (reader.pos < end) {
++      const tag = reader.uint32();
++      switch (tag >>> 3) {
++        case 1:
++          message.size = longToNumber(reader.uint64() as Long);
++          break;
++        case 2:
++          message.addr = reader.string();
++          break;
++        case 3:
++          message.port = reader.uint32();
++          break;
++        case 4:
++          message.flags = PacketFlags.decode(reader, reader.uint32());
++          break;
++        case 5:
++          message.senderStake = longToNumber(reader.uint64() as Long);
++          break;
++        default:
++          reader.skipType(tag & 7);
++          break;
++      }
++    }
++    return message;
++  },
++
++  fromJSON(object: any): Meta {
++    return {
++      size: isSet(object.size) ? Number(object.size) : 0,
++      addr: isSet(object.addr) ? String(object.addr) : "",
++      port: isSet(object.port) ? Number(object.port) : 0,
++      flags: isSet(object.flags) ? PacketFlags.fromJSON(object.flags) : undefined,
++      senderStake: isSet(object.senderStake) ? Number(object.senderStake) : 0,
++    };
++  },
++
++  toJSON(message: Meta): unknown {
++    const obj: any = {};
++    message.size !== undefined && (obj.size = Math.round(message.size));
++    message.addr !== undefined && (obj.addr = message.addr);
++    message.port !== undefined && (obj.port = Math.round(message.port));
++    message.flags !== undefined && (obj.flags = message.flags ? PacketFlags.toJSON(message.flags) : undefined);
++    message.senderStake !== undefined && (obj.senderStake = Math.round(message.senderStake));
++    return obj;
++  },
++
++  create<I extends Exact<DeepPartial<Meta>, I>>(base?: I): Meta {
++    return Meta.fromPartial(base ?? {});
++  },
++
++  fromPartial<I extends Exact<DeepPartial<Meta>, I>>(object: I): Meta {
++    const message = createBaseMeta();
++    message.size = object.size ?? 0;
++    message.addr = object.addr ?? "";
++    message.port = object.port ?? 0;
++    message.flags = (object.flags !== undefined && object.flags !== null)
++      ? PacketFlags.fromPartial(object.flags)
++      : undefined;
++    message.senderStake = object.senderStake ?? 0;
++    return message;
++  },
++};
++
++function createBasePacketFlags(): PacketFlags {
++  return { discard: false, forwarded: false, repair: false, simpleVoteTx: false, tracerPacket: false };
++}
++
++export const PacketFlags = {
++  encode(message: PacketFlags, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
++    if (message.discard === true) {
++      writer.uint32(8).bool(message.discard);
++    }
++    if (message.forwarded === true) {
++      writer.uint32(16).bool(message.forwarded);
++    }
++    if (message.repair === true) {
++      writer.uint32(24).bool(message.repair);
++    }
++    if (message.simpleVoteTx === true) {
++      writer.uint32(32).bool(message.simpleVoteTx);
++    }
++    if (message.tracerPacket === true) {
++      writer.uint32(40).bool(message.tracerPacket);
++    }
++    return writer;
++  },
++
++  decode(input: _m0.Reader | Uint8Array, length?: number): PacketFlags {
++    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
++    let end = length === undefined ? reader.len : reader.pos + length;
++    const message = createBasePacketFlags();
++    while (reader.pos < end) {
++      const tag = reader.uint32();
++      switch (tag >>> 3) {
++        case 1:
++          message.discard = reader.bool();
++          break;
++        case 2:
++          message.forwarded = reader.bool();
++          break;
++        case 3:
++          message.repair = reader.bool();
++          break;
++        case 4:
++          message.simpleVoteTx = reader.bool();
++          break;
++        case 5:
++          message.tracerPacket = reader.bool();
++          break;
++        default:
++          reader.skipType(tag & 7);
++          break;
++      }
++    }
++    return message;
++  },
++
++  fromJSON(object: any): PacketFlags {
++    return {
++      discard: isSet(object.discard) ? Boolean(object.discard) : false,
++      forwarded: isSet(object.forwarded) ? Boolean(object.forwarded) : false,
++      repair: isSet(object.repair) ? Boolean(object.repair) : false,
++      simpleVoteTx: isSet(object.simpleVoteTx) ? Boolean(object.simpleVoteTx) : false,
++      tracerPacket: isSet(object.tracerPacket) ? Boolean(object.tracerPacket) : false,
++    };
++  },
++
++  toJSON(message: PacketFlags): unknown {
++    const obj: any = {};
++    message.discard !== undefined && (obj.discard = message.discard);
++    message.forwarded !== undefined && (obj.forwarded = message.forwarded);
++    message.repair !== undefined && (obj.repair = message.repair);
++    message.simpleVoteTx !== undefined && (obj.simpleVoteTx = message.simpleVoteTx);
++    message.tracerPacket !== undefined && (obj.tracerPacket = message.tracerPacket);
++    return obj;
++  },
++
++  create<I extends Exact<DeepPartial<PacketFlags>, I>>(base?: I): PacketFlags {
++    return PacketFlags.fromPartial(base ?? {});
++  },
++
++  fromPartial<I extends Exact<DeepPartial<PacketFlags>, I>>(object: I): PacketFlags {
++    const message = createBasePacketFlags();
++    message.discard = object.discard ?? false;
++    message.forwarded = object.forwarded ?? false;
++    message.repair = object.repair ?? false;
++    message.simpleVoteTx = object.simpleVoteTx ?? false;
++    message.tracerPacket = object.tracerPacket ?? false;
++    return message;
++  },
++};
++
++declare var self: any | undefined;
++declare var window: any | undefined;
++declare var global: any | undefined;
++var tsProtoGlobalThis: any = (() => {
++  if (typeof globalThis !== "undefined") {
++    return globalThis;
++  }
++  if (typeof self !== "undefined") {
++    return self;
++  }
++  if (typeof window !== "undefined") {
++    return window;
++  }
++  if (typeof global !== "undefined") {
++    return global;
++  }
++  throw "Unable to locate global object";
++})();
++
++function bytesFromBase64(b64: string): Uint8Array {
++  if (tsProtoGlobalThis.Buffer) {
++    return Uint8Array.from(tsProtoGlobalThis.Buffer.from(b64, "base64"));
++  } else {
++    const bin = tsProtoGlobalThis.atob(b64);
++    const arr = new Uint8Array(bin.length);
++    for (let i = 0; i < bin.length; ++i) {
++      arr[i] = bin.charCodeAt(i);
++    }
++    return arr;
++  }
++}
++
++function base64FromBytes(arr: Uint8Array): string {
++  if (tsProtoGlobalThis.Buffer) {
++    return tsProtoGlobalThis.Buffer.from(arr).toString("base64");
++  } else {
++    const bin: string[] = [];
++    arr.forEach((byte) => {
++      bin.push(String.fromCharCode(byte));
++    });
++    return tsProtoGlobalThis.btoa(bin.join(""));
++  }
++}
++
++type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
++
++export type DeepPartial<T> = T extends Builtin ? T
++  : T extends Array<infer U> ? Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
++  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
++  : Partial<T>;
++
++type KeysOfUnion<T> = T extends T ? keyof T : never;
++export type Exact<P, I extends P> = P extends Builtin ? P
++  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
++
++function longToNumber(long: Long): number {
++  if (long.gt(Number.MAX_SAFE_INTEGER)) {
++    throw new tsProtoGlobalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
++  }
++  return long.toNumber();
++}
++
++if (_m0.util.Long !== Long) {
++  _m0.util.Long = Long as any;
++  _m0.configure();
++}
++
++function isSet(value: any): boolean {
++  return value !== null && value !== undefined;
++}
+Index: src/grpcBundleClient/shared.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/grpcBundleClient/shared.ts b/src/grpcBundleClient/shared.ts
+new file mode 100644
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/grpcBundleClient/shared.ts	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,248 @@
++/* eslint-disable */
++import Long from "long";
++import _m0 from "protobufjs/minimal";
++import { Timestamp } from "./google/protobuf/timestamp";
++
++export const protobufPackage = "shared";
++
++export interface Header {
++  ts: Date | undefined;
++}
++
++export interface Heartbeat {
++  count: number;
++}
++
++export interface Socket {
++  ip: string;
++  port: number;
++}
++
++function createBaseHeader(): Header {
++  return { ts: undefined };
++}
++
++export const Header = {
++  encode(message: Header, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
++    if (message.ts !== undefined) {
++      Timestamp.encode(toTimestamp(message.ts), writer.uint32(10).fork()).ldelim();
++    }
++    return writer;
++  },
++
++  decode(input: _m0.Reader | Uint8Array, length?: number): Header {
++    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
++    let end = length === undefined ? reader.len : reader.pos + length;
++    const message = createBaseHeader();
++    while (reader.pos < end) {
++      const tag = reader.uint32();
++      switch (tag >>> 3) {
++        case 1:
++          message.ts = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
++          break;
++        default:
++          reader.skipType(tag & 7);
++          break;
++      }
++    }
++    return message;
++  },
++
++  fromJSON(object: any): Header {
++    return { ts: isSet(object.ts) ? fromJsonTimestamp(object.ts) : undefined };
++  },
++
++  toJSON(message: Header): unknown {
++    const obj: any = {};
++    message.ts !== undefined && (obj.ts = message.ts.toISOString());
++    return obj;
++  },
++
++  create<I extends Exact<DeepPartial<Header>, I>>(base?: I): Header {
++    return Header.fromPartial(base ?? {});
++  },
++
++  fromPartial<I extends Exact<DeepPartial<Header>, I>>(object: I): Header {
++    const message = createBaseHeader();
++    message.ts = object.ts ?? undefined;
++    return message;
++  },
++};
++
++function createBaseHeartbeat(): Heartbeat {
++  return { count: 0 };
++}
++
++export const Heartbeat = {
++  encode(message: Heartbeat, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
++    if (message.count !== 0) {
++      writer.uint32(8).uint64(message.count);
++    }
++    return writer;
++  },
++
++  decode(input: _m0.Reader | Uint8Array, length?: number): Heartbeat {
++    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
++    let end = length === undefined ? reader.len : reader.pos + length;
++    const message = createBaseHeartbeat();
++    while (reader.pos < end) {
++      const tag = reader.uint32();
++      switch (tag >>> 3) {
++        case 1:
++          message.count = longToNumber(reader.uint64() as Long);
++          break;
++        default:
++          reader.skipType(tag & 7);
++          break;
++      }
++    }
++    return message;
++  },
++
++  fromJSON(object: any): Heartbeat {
++    return { count: isSet(object.count) ? Number(object.count) : 0 };
++  },
++
++  toJSON(message: Heartbeat): unknown {
++    const obj: any = {};
++    message.count !== undefined && (obj.count = Math.round(message.count));
++    return obj;
++  },
++
++  create<I extends Exact<DeepPartial<Heartbeat>, I>>(base?: I): Heartbeat {
++    return Heartbeat.fromPartial(base ?? {});
++  },
++
++  fromPartial<I extends Exact<DeepPartial<Heartbeat>, I>>(object: I): Heartbeat {
++    const message = createBaseHeartbeat();
++    message.count = object.count ?? 0;
++    return message;
++  },
++};
++
++function createBaseSocket(): Socket {
++  return { ip: "", port: 0 };
++}
++
++export const Socket = {
++  encode(message: Socket, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
++    if (message.ip !== "") {
++      writer.uint32(10).string(message.ip);
++    }
++    if (message.port !== 0) {
++      writer.uint32(16).int64(message.port);
++    }
++    return writer;
++  },
++
++  decode(input: _m0.Reader | Uint8Array, length?: number): Socket {
++    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
++    let end = length === undefined ? reader.len : reader.pos + length;
++    const message = createBaseSocket();
++    while (reader.pos < end) {
++      const tag = reader.uint32();
++      switch (tag >>> 3) {
++        case 1:
++          message.ip = reader.string();
++          break;
++        case 2:
++          message.port = longToNumber(reader.int64() as Long);
++          break;
++        default:
++          reader.skipType(tag & 7);
++          break;
++      }
++    }
++    return message;
++  },
++
++  fromJSON(object: any): Socket {
++    return { ip: isSet(object.ip) ? String(object.ip) : "", port: isSet(object.port) ? Number(object.port) : 0 };
++  },
++
++  toJSON(message: Socket): unknown {
++    const obj: any = {};
++    message.ip !== undefined && (obj.ip = message.ip);
++    message.port !== undefined && (obj.port = Math.round(message.port));
++    return obj;
++  },
++
++  create<I extends Exact<DeepPartial<Socket>, I>>(base?: I): Socket {
++    return Socket.fromPartial(base ?? {});
++  },
++
++  fromPartial<I extends Exact<DeepPartial<Socket>, I>>(object: I): Socket {
++    const message = createBaseSocket();
++    message.ip = object.ip ?? "";
++    message.port = object.port ?? 0;
++    return message;
++  },
++};
++
++declare var self: any | undefined;
++declare var window: any | undefined;
++declare var global: any | undefined;
++var tsProtoGlobalThis: any = (() => {
++  if (typeof globalThis !== "undefined") {
++    return globalThis;
++  }
++  if (typeof self !== "undefined") {
++    return self;
++  }
++  if (typeof window !== "undefined") {
++    return window;
++  }
++  if (typeof global !== "undefined") {
++    return global;
++  }
++  throw "Unable to locate global object";
++})();
++
++type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
++
++export type DeepPartial<T> = T extends Builtin ? T
++  : T extends Array<infer U> ? Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
++  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
++  : Partial<T>;
++
++type KeysOfUnion<T> = T extends T ? keyof T : never;
++export type Exact<P, I extends P> = P extends Builtin ? P
++  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
++
++function toTimestamp(date: Date): Timestamp {
++  const seconds = date.getTime() / 1_000;
++  const nanos = (date.getTime() % 1_000) * 1_000_000;
++  return { seconds, nanos };
++}
++
++function fromTimestamp(t: Timestamp): Date {
++  let millis = t.seconds * 1_000;
++  millis += t.nanos / 1_000_000;
++  return new Date(millis);
++}
++
++function fromJsonTimestamp(o: any): Date {
++  if (o instanceof Date) {
++    return o;
++  } else if (typeof o === "string") {
++    return new Date(o);
++  } else {
++    return fromTimestamp(Timestamp.fromJSON(o));
++  }
++}
++
++function longToNumber(long: Long): number {
++  if (long.gt(Number.MAX_SAFE_INTEGER)) {
++    throw new tsProtoGlobalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
++  }
++  return long.toNumber();
++}
++
++if (_m0.util.Long !== Long) {
++  _m0.util.Long = Long as any;
++  _m0.configure();
++}
++
++function isSet(value: any): boolean {
++  return value !== null && value !== undefined;
++}
+Index: src/proto/bundle/build-bundle-protos
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/proto/bundle/build-bundle-protos b/src/proto/bundle/build-bundle-protos
+new file mode 100755
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/proto/bundle/build-bundle-protos	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,18 @@
++#!/usr/bin/env bash
++
++# Path to these plugins
++PROTOC_GEN_TS_PATH="../../../node_modules/.bin/protoc-gen-ts_proto"
++
++PROTOS_PATH="./"
++
++
++# Directory to write generated code to
++OUT_DIR="../../grpcBundleClient/"
++
++protoc \
++  --plugin=${PROTOC_GEN_TS_PATH} \
++  --proto_path="${PROTOS_PATH}" \
++  --ts_proto_out=${OUT_DIR} \
++  --ts_proto_opt=outputServices=grpc-js \
++  --ts_proto_opt=esModuleInterop=true \
++  bundle_exchange.proto bundle.proto packet.proto shared.proto 
+Index: src/proto/bundle/bundle.proto
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/proto/bundle/bundle.proto b/src/proto/bundle/bundle.proto
+new file mode 100644
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/proto/bundle/bundle.proto	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,16 @@
++syntax = "proto3";
++
++import "packet.proto";
++import "shared.proto";
++
++package bundle;
++
++message Bundle {
++  shared.Header header = 2;
++  repeated packet.Packet packets = 3;
++}
++
++message BundleUuid {
++  bundle.Bundle bundle = 1;
++  string uuid = 2;
++}
+Index: src/proto/bundle/bundle_exchange.proto
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/proto/bundle/bundle_exchange.proto b/src/proto/bundle/bundle_exchange.proto
+new file mode 100644
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/proto/bundle/bundle_exchange.proto	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,14 @@
++syntax = "proto3";
++
++import "bundle.proto";
++
++package bundle_exchange;
++
++message BundleExchangeResponse {
++  string uuid = 1;
++}
++
++service BundleExchange {
++  rpc SendBundle(bundle.Bundle) returns (BundleExchangeResponse) {}
++}
++
+Index: src/proto/bundle/packet.proto
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/proto/bundle/packet.proto b/src/proto/bundle/packet.proto
+new file mode 100644
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/proto/bundle/packet.proto	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,29 @@
++syntax = "proto3";
++
++package packet;
++
++message PacketBatch {
++  repeated Packet packets = 1;
++}
++
++message Packet {
++  bytes data = 1;
++  Meta meta = 2;
++}
++
++message Meta {
++  uint64 size = 1;
++  string addr = 2;
++  uint32 port = 3;
++  PacketFlags flags = 4;
++  uint64 sender_stake = 5;
++}
++
++message PacketFlags {
++  bool discard = 1;
++  bool forwarded = 2;
++  bool repair = 3;
++  bool simple_vote_tx = 4;
++  bool tracer_packet = 5;
++}
++
+Index: src/proto/bundle/shared.proto
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/proto/bundle/shared.proto b/src/proto/bundle/shared.proto
+new file mode 100644
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/proto/bundle/shared.proto	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,18 @@
++syntax = "proto3";
++
++import "google/protobuf/timestamp.proto";
++
++package shared;
++
++message Header {
++  google.protobuf.Timestamp ts = 1;
++}
++
++message Heartbeat {
++  uint64 count = 1;
++}
++
++message Socket {
++  string ip = 1;
++  int64 port = 2;
++}
+Index: src/types/bundle/bundle.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/types/bundle/bundle.ts b/src/types/bundle/bundle.ts
+new file mode 100644
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/types/bundle/bundle.ts	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,79 @@
++import {
++    Keypair,
++    PublicKey,
++    SystemProgram,
++    TransactionMessage,
++    VersionedTransaction,
++} from '@solana/web3.js';
++
++import { Bundle as IBundle } from './../../grpcBundleClient/bundle';
++import { Header } from './../../grpcBundleClient/shared';
++import { Packet } from './../../grpcBundleClient/packet';
++import { serializeTransactions } from './utils';
++// Represents a bundle of transactions expected to execute all or nothing, atomically and sequentially.
++export class Bundle implements IBundle {
++    private transactions: VersionedTransaction[];
++    // Maximum number of transactions a bundle may have.
++    private readonly transactionLimit: number;
++    header: Header | undefined;
++    packets: Packet[];
++
++    constructor(txs: VersionedTransaction[], transactionLimit: number) {
++        this.transactions = txs;
++        this.transactionLimit = transactionLimit;
++        this.packets = serializeTransactions(txs);
++    }
++
++    // Adds transactions to the bundle.
++    addTransactions(...transactions: VersionedTransaction[]): Bundle | Error {
++        const numTransactions = this.transactions.length + transactions.length;
++        if (numTransactions > this.transactionLimit) {
++            return new Error(
++                `${numTransactions} exceeds transaction limit of ${this.transactionLimit}`
++            );
++        }
++
++        this.transactions.push(...transactions);
++        this.packets = this.packets.concat(serializeTransactions(transactions));
++
++        return this;
++    }
++
++    // Creates a new transaction to tip.
++    addTipTx(
++        keypair: Keypair,
++        tipLamports: number,
++        tipAccount: PublicKey,
++        recentBlockhash: string
++    ): Bundle | Error {
++        const numTransactions = this.transactions.length + 1;
++        if (numTransactions > this.transactionLimit) {
++            return new Error(
++                `${numTransactions} exceeds transaction limit of ${this.transactionLimit}`
++            );
++        }
++
++        const tipIx = SystemProgram.transfer({
++            fromPubkey: keypair.publicKey,
++            toPubkey: tipAccount,
++            lamports: tipLamports,
++        });
++
++        const instructions = [tipIx];
++
++        const messageV0 = new TransactionMessage({
++            payerKey: keypair.publicKey,
++            recentBlockhash: recentBlockhash,
++            instructions,
++        }).compileToV0Message();
++
++        const tipTx = new VersionedTransaction(messageV0);
++
++        tipTx.sign([keypair]);
++
++        this.transactions.push(tipTx);
++        this.packets = this.packets.concat(serializeTransactions([tipTx]));
++
++        return this;
++    }
++}
+Index: src/types/bundle/utils.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/types/bundle/utils.ts b/src/types/bundle/utils.ts
+new file mode 100644
+--- /dev/null	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
++++ b/src/types/bundle/utils.ts	(revision b203c3587fb9659fffe358d70b6b4a09694dd5b2)
+@@ -0,0 +1,38 @@
++import { VersionedTransaction } from '@solana/web3.js';
++
++import { Meta, Packet } from './../../grpcBundleClient/packet';
++
++export const unixTimestampFromDate = (date: Date) => {
++    return Math.floor(date.getTime() / 1000);
++};
++
++export const deserializeTransactions = (
++    packets: Packet[]
++): VersionedTransaction[] => {
++    return packets.map(p => {
++        return VersionedTransaction.deserialize(p.data);
++    });
++};
++
++export const serializeTransactions = (
++    txs: VersionedTransaction[]
++): Packet[] => {
++    return txs.map(tx => {
++        const data = tx.serialize();
++
++        return {
++            data,
++            meta: {
++                port: 0,
++                addr: '0.0.0.0',
++                senderStake: 0,
++                size: data.length,
++                flags: undefined,
++            } as Meta,
++        } as Packet;
++    });
++};
++
++export const isError = <T>(value: T | Error): value is Error => {
++    return value instanceof Error;
++};

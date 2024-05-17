@@ -9,7 +9,7 @@ use std::{
 };
 
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
-use jito_block_engine::block_engine::BlockEnginePackets;
+use jito_relayer::client_packet_sender::BlockEnginePackets;
 use jito_relayer::relayer::RelayerPacketBatches;
 use solana_core::banking_trace::BankingPacketBatch;
 use solana_metrics::datapoint_info;

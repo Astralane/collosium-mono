@@ -13,12 +13,13 @@ use std::{
     thread::JoinHandle,
     time::{Duration, Instant},
 };
+use std::collections::HashMap;
+use std::sync::RwLock;
 
 use clap::Parser;
 use crossbeam_channel::tick;
 use dashmap::DashMap;
 use env_logger::Env;
-use jito_block_engine::block_engine::{BlockEngineRelayerHandler};
 use jito_core::{
     graceful_panic,
     tpu::{Tpu, TpuSockets},
@@ -53,6 +54,8 @@ use tokio::{runtime::Builder, signal, sync::mpsc::channel};
 use tonic::Request;
 use tonic::service::interceptor;
 use tonic::transport::Server;
+
+use jito_relayer::client_packet_sender::ClientPacketSender;
 
 // no-op change to test ci
 
@@ -456,11 +459,19 @@ fn main() {
     let (delay_packet_sender, delay_packet_receiver) =
         crossbeam_channel::bounded(Tpu::TPU_QUEUE_CAPACITY);
 
+    let client_packet_subscriptions = Arc::new(RwLock::new(HashMap::default()));
     // NOTE: make sure the channel here isn't too big because it will get backed up
     // with packets when the block engine isn't connected
     // tracked as forwarder_metrics.block_engine_sender_len
     let (block_engine_sender, block_engine_receiver) =
         channel(jito_transaction_relayer::forwarder::BLOCK_ENGINE_FORWARDER_QUEUE_CAPACITY);
+
+    let client_packet_sender = ClientPacketSender::new(
+        client_packet_subscriptions.clone(),
+        block_engine_receiver,
+        args.validator_packet_batch_size,
+        exit.clone(),
+    );
 
     let forward_and_delay_threads = start_forward_and_delay_thread(
         verified_receiver,
@@ -471,30 +482,7 @@ fn main() {
         args.disable_mempool,
         &exit,
     );
-    //
     let is_connected_to_block_engine = Arc::new(AtomicBool::new(true));
-    // let block_engine_config = if !args.disable_mempool && args.block_engine_url.is_some() {
-    //     let block_engine_url = args.block_engine_url.unwrap();
-    //     let auth_service_url = args
-    //         .block_engine_auth_service_url
-    //         .unwrap_or(block_engine_url.clone());
-    //     Some(BlockEngineConfig {
-    //         block_engine_url,
-    //         auth_service_url,
-    //     })
-    // } else {
-    //     None
-    // };
-    // let block_engine_forwarder = BlockEngineRelayerHandler::new(
-    //     block_engine_config,
-    //     block_engine_receiver,
-    //     keypair,
-    //     exit.clone(),
-    //     args.aoi_cache_ttl_secs,
-    //     address_lookup_table_cache.clone(),
-    //     &is_connected_to_block_engine,
-    //     ofac_addresses.clone(),
-    // );
 
     // receiver tracked as relayer_metrics.slot_receiver_len
     // downstream channel gets data that was duplicated by HealthManager
@@ -522,6 +510,7 @@ fn main() {
         address_lookup_table_cache,
         args.validator_packet_batch_size,
         args.forward_all,
+        client_packet_subscriptions.clone(),
     );
 
     let priv_key = fs::read(&args.signing_key_pem_path).unwrap_or_else(|_| {
@@ -604,6 +593,7 @@ fn main() {
         t.join().unwrap();
     }
     lookup_table_refresher.join().unwrap();
+    client_packet_sender.join().unwrap();
 }
 
 pub async fn shutdown_signal(exit: Arc<AtomicBool>) {

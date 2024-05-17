@@ -383,7 +383,7 @@ pub type RelayerResult<T> = Result<T, RelayerError>;
 
 type PacketSubscriptions =
     Arc<RwLock<HashMap<Pubkey, TokioSender<Result<SubscribePacketsResponse, Status>>>>>;
-type ClientPacketSubscriptions =
+pub type ClientPacketSubscriptions =
 Arc<RwLock<HashMap<SocketAddr, TokioSender<Result<SubscribePacketsResponse, Status>>>>>;
 pub struct RelayerHandle {
     packet_subscriptions: PacketSubscriptions,
@@ -436,6 +436,7 @@ impl RelayerImpl {
         address_lookup_table_cache: Arc<DashMap<Pubkey, AddressLookupTableAccount>>,
         validator_packet_batch_size: usize,
         forward_all: bool,
+        client_packet_subscriptions: ClientPacketSubscriptions,
     ) -> Self {
         const LEADER_LOOKAHEAD: u64 = 2;
 
@@ -444,7 +445,6 @@ impl RelayerImpl {
             bounded(LoadBalancer::SLOT_QUEUE_CAPACITY);
 
         let packet_subscriptions = Arc::new(RwLock::new(HashMap::default()));
-        let client_packet_subscriptions = Arc::new(RwLock::new(HashMap::default()));
 
         let thread = {
             let health_state = health_state.clone();
@@ -535,8 +535,8 @@ impl RelayerImpl {
                 },
                 recv(delay_packet_receiver) -> maybe_packet_batches => {
                     let start = Instant::now();
-                    let (failed_forwards, failed_client_forwards) = Self::forward_packets(maybe_packet_batches, packet_subscriptions, client_packet_subscriptions, &slot_leaders, &mut relayer_metrics, &ofac_addresses, &address_lookup_table_cache, validator_packet_batch_size, forward_all)?;
-                    Self::drop_connections(failed_forwards, failed_client_forwards, packet_subscriptions, client_packet_subscriptions, &mut relayer_metrics);
+                    let failed_forwards = Self::forward_packets(maybe_packet_batches, packet_subscriptions, &slot_leaders, &mut relayer_metrics, &ofac_addresses, &address_lookup_table_cache, validator_packet_batch_size, forward_all)?;
+                    Self::drop_connections(failed_forwards, vec![], packet_subscriptions, client_packet_subscriptions, &mut relayer_metrics);
                     let _ = relayer_metrics.crossbeam_delay_packet_receiver_processing_us.increment(start.elapsed().as_micros() as u64);
                 },
                 recv(subscription_receiver) -> maybe_subscription => {
@@ -686,14 +686,13 @@ impl RelayerImpl {
     fn forward_packets(
         maybe_packet_batches: Result<RelayerPacketBatches, RecvError>,
         subscriptions: &PacketSubscriptions,
-        client_packet_subscriptions: &ClientPacketSubscriptions,
         slot_leaders: &HashSet<Pubkey>,
         relayer_metrics: &mut RelayerMetrics,
         ofac_addresses: &HashSet<Pubkey>,
         address_lookup_table_cache: &Arc<DashMap<Pubkey, AddressLookupTableAccount>>,
         validator_packet_batch_size: usize,
         forward_all: bool,
-    ) -> RelayerResult<(Vec<Pubkey>, Vec<SocketAddr>)> {
+    ) -> RelayerResult<Vec<Pubkey>> {
         let packet_batches = maybe_packet_batches?;
 
         let _ = relayer_metrics
@@ -735,13 +734,6 @@ impl RelayerImpl {
         }
 
         let l_subscriptions = subscriptions.read().unwrap();
-        let l_client_packet_subscriptions = client_packet_subscriptions.read().unwrap();
-
-        let client_senders =
-            l_client_packet_subscriptions.iter().collect::<Vec<(
-                &SocketAddr,
-                &TokioSender<Result<SubscribePacketsResponse, Status>>,
-            )>>();
 
         let senders = if forward_all {
             l_subscriptions.iter().collect::<Vec<(
@@ -757,33 +749,11 @@ impl RelayerImpl {
 
 
         let mut failed_forwards = Vec::new();
-        let mut failed_client_forwards = Vec::new();
         for batch in &proto_packet_batches {
             // NOTE: this is important to avoid divide-by-0 inside the validator if packets
             // get routed to sigverify under the assumption theres > 0 packets in the batch
             if batch.packets.is_empty() {
                 continue;
-            }
-
-            for (socket_addr, sender) in &client_senders {
-                match sender.try_send(Ok(SubscribePacketsResponse {
-                    header: Some(Header {
-                        ts: Some(Timestamp::from(SystemTime::now())),
-                    }),
-                    msg: Some(subscribe_packets_response::Msg::Batch(batch.clone())),
-                })) {
-                    Err(TrySendError::Full(_)) => {
-                        error!("packet channel is full for client");
-                    }
-                    Err(TrySendError::Closed(_)) => {
-                        error!("channel is closed for client");
-                        failed_client_forwards.push(**socket_addr);
-                        break;
-                    }
-                    _ => {
-                        debug!("packet sent to client")
-                    }
-                }
             }
 
             for (pubkey, sender) in &senders {
@@ -811,7 +781,7 @@ impl RelayerImpl {
                 }
             }
         }
-        Ok((failed_forwards, failed_client_forwards))
+        Ok(failed_forwards)
     }
 
     fn handle_subscription(

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::{Arc};
 use tokio::sync::Mutex;
@@ -38,8 +38,11 @@ async fn main() {
 
     let processed_selectors = Arc::new(Mutex::new(HashMap::new()));
     let unprocessed_selectors = Arc::new(Mutex::new(HashMap::new()));
+    let mut valid_api_keys = HashSet::new();
+    valid_api_keys.insert(String::from("key_1"));
+    valid_api_keys.insert(String::from("key_2"));
 
-    let streaming_server = StreamingServerImpl::new(processed_selectors, unprocessed_selectors);
+    let streaming_server = StreamingServerImpl::new(processed_selectors, unprocessed_selectors, valid_api_keys);
     let mut streaming_server_copy = streaming_server.clone();
 
     tokio::spawn(async move {

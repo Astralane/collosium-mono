@@ -1,10 +1,11 @@
-import { client } from '../../src/client/astralineClient';
+import { AstralineClient } from '../../src/client/astralineClient';
 import { bundleClient } from '../../src/bundleClient';
 import { createMemoTransaction } from "./utils"
 import { Connection, Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 const CONNECTION = new Connection('http://127.0.0.1:8899', 'confirmed');
 const FROM_KEYPAIR = new Keypair();
+const client = new AstralineClient('key_1');
 
 async function main() {
 
@@ -14,11 +15,11 @@ async function main() {
     );
     await CONNECTION.confirmTransaction(signature);
 
-    client.registerProcessedTxCallback('72i21TqCQw6oTGULXHNmuHkyrzyjbsGVdem1f4mUnAMJ', (tx) => {
+    client.registerProcessedTxCallback(['72i21TqCQw6oTGULXHNmuHkyrzyjbsGVdem1f4mUnAMJ'], (tx) => {
         console.log(`Processed tx received: ${JSON.stringify(tx)}\n`);
     });
 
-    client.registerUnprocessedTxCallback('72i21TqCQw6oTGULXHNmuHkyrzyjbsGVdem1f4mUnAMJ', async (tx) => {
+    client.registerUnprocessedTxCallback(['72i21TqCQw6oTGULXHNmuHkyrzyjbsGVdem1f4mUnAMJ'], async (tx) => {
         console.log(`Unprocessed tx received: ${JSON.stringify(tx)}\n`);
 
         let memoBeforeTx = await createMemoTransaction(CONNECTION, FROM_KEYPAIR, "memo before tx");

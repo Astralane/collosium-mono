@@ -4,6 +4,9 @@ import { PacketBatch } from 'jito-ts/dist/gen/block-engine/packet';
 import streamingClient from './grpcStreamingServiceClient';
 import { TimestampedTransactionUpdate } from '../grpc/geyser';
 import { SubscribePacketsResponse } from '../grpc/streaming_service';
+import bundleExchangeClient from './grpcBundleExchangeClient';
+import * as web3 from '@solana/web3.js';
+import { Bundle } from '../types/bundle/bundle';
 
 export class AstralineClient {
   constructor(private readonly apiKey: string) {}
@@ -53,6 +56,40 @@ export class AstralineClient {
 
     call.on('end', () => {
       console.log('UnprocessedTx stream ended');
+    });
+  }
+
+  async sendBundle(
+    connection: web3.Connection,
+    txs: web3.VersionedTransaction[],
+    tipPayer: web3.Keypair,
+    tipAccount: web3.PublicKey,
+    tipAmount: number,
+  ) {
+    const resp = await connection.getLatestBlockhash('processed');
+    console.log('created bundle');
+    let bundle = new Bundle(txs, 10);
+
+    if (!tipPayer.publicKey.equals(tipAccount)) {
+      console.log('adding tip tx');
+      const mayBeBundle = bundle.addTipTx(
+        tipPayer,
+        tipAmount,
+        tipAccount,
+        resp.blockhash,
+      );
+      if (mayBeBundle instanceof Error) {
+        throw mayBeBundle;
+      }
+      bundle = mayBeBundle;
+    }
+
+    console.log('sending bundle to validator');
+    bundleExchangeClient.sendBundle(bundle, (error, response) => {
+      if (error != null) {
+        console.log(error);
+      }
+      console.log(response);
     });
   }
 }

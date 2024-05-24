@@ -150,7 +150,7 @@ impl Clone for StreamingServerImpl {
 
 async fn validate_api_key(api_key: &str, admin_service_api_url: &str) -> bool {
     let client = Client::new();
-    let url = format!("{}/exists/{}", admin_service_api_url, api_key);
+    let url = format!("{}/keys/{}", admin_service_api_url, api_key);
 
     match client.get(&url).send().await {
         Ok(response) => response.status().is_success(),

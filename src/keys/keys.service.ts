@@ -31,4 +31,8 @@ export class KeysService {
   async findAll(): Promise<Key[]> {
     return await this.keyModel.find().exec();
   }
+
+  async delete(key: string): Promise<void> {
+    return await this.keyModel.findOneAndDelete({ key });
+  }
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -35,5 +36,15 @@ export class KeysController {
   @Get()
   async findAll() {
     return await this.keysService.findAll();
+  }
+
+  @Delete(':keyValue')
+  async delete(@Param('keyValue') keyValue: string) {
+    const key = await this.keysService.getOne(keyValue);
+    if (!key) {
+      throw new NotFoundException('Key is not found.');
+    }
+
+    await this.keysService.delete(keyValue);
   }
 }

@@ -1,0 +1,37 @@
+version: '3.1'
+
+services:
+
+  nestjs:
+    image: node:18
+    restart: always
+    working_dir: /usr/src/app
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - 3000:3000
+    networks:
+      - nesjs-network  
+    depends_on:
+      - mongodb
+    environment:
+      MONGODB_URL: ${MONGODB_URL}
+    command: sh -c "npm install && npm run build && npm run start:prod"
+
+  mongodb:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: secret
+    ports:
+      - 27017:27017
+    networks:
+      - nesjs-network
+
+networks:
+    nesjs-network:
+      driver: bridge
+
+

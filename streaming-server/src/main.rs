@@ -1,7 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::{Arc};
 use tokio::sync::Mutex;
+use std::env;
 
 use tonic::Streaming;
 use tonic::transport::Server;
@@ -18,6 +19,15 @@ mod server;
 
 #[tokio::main]
 async fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 2 {
+        eprintln!("Admin service api url should be provided");
+        std::process::exit(1);
+    }
+
+    let admin_service_api_url = args[1].clone();
+
     let mut relayer_client = get_relayer_client("http://localhost:11226")
         .await
         .expect("connect to relayer client failed");
@@ -38,11 +48,8 @@ async fn main() {
 
     let processed_selectors = Arc::new(Mutex::new(HashMap::new()));
     let unprocessed_selectors = Arc::new(Mutex::new(HashMap::new()));
-    let mut valid_api_keys = HashSet::new();
-    valid_api_keys.insert(String::from("key_1"));
-    valid_api_keys.insert(String::from("key_2"));
 
-    let streaming_server = StreamingServerImpl::new(processed_selectors, unprocessed_selectors, valid_api_keys);
+    let streaming_server = StreamingServerImpl::new(processed_selectors, unprocessed_selectors, admin_service_api_url);
     let mut streaming_server_copy = streaming_server.clone();
 
     tokio::spawn(async move {

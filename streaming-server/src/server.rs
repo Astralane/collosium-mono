@@ -3,7 +3,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use bincode::Options;
-use itertools::Itertools;
+use solana_client::client_error::reqwest::Client;
 use solana_program::pubkey::Pubkey;
 use solana_sdk::packet::PACKET_DATA_SIZE;
 use solana_sdk::transaction::VersionedTransaction;
@@ -24,17 +24,17 @@ type UnprocessedSelectorsMap = Arc<Mutex<HashMap<Pubkey, Vec<Sender<Result<Subsc
 pub struct StreamingServerImpl {
     processed_selectors: ProcessedSelectorsMap,
     unprocessed_selectors: UnprocessedSelectorsMap,
-    valid_api_keys: HashSet<String>,
+    admin_service_api_url: String,
 }
 
 impl StreamingServerImpl {
     pub fn new(processed_selectors: ProcessedSelectorsMap,
                unprocessed_selectors: UnprocessedSelectorsMap,
-               valid_api_keys: HashSet<String>) -> Self {
+               admin_service_api_url: String) -> Self {
         StreamingServerImpl {
             processed_selectors,
             unprocessed_selectors,
-            valid_api_keys,
+            admin_service_api_url,
         }
     }
 
@@ -142,7 +142,21 @@ impl Clone for StreamingServerImpl {
         StreamingServerImpl {
             processed_selectors: self.processed_selectors.clone(),
             unprocessed_selectors: self.unprocessed_selectors.clone(),
-            valid_api_keys: self.valid_api_keys.clone(),
+            admin_service_api_url: self.admin_service_api_url.clone(),
+        }
+    }
+}
+
+
+async fn validate_api_key(api_key: &str, admin_service_api_url: &str) -> bool {
+    let client = Client::new();
+    let url = format!("{}/keys/{}", admin_service_api_url, api_key);
+
+    match client.get(&url).send().await {
+        Ok(response) => response.status().is_success(),
+        Err(err) => {
+            eprintln!("Failed to send request: {:?}", err);
+            false
         }
     }
 }
@@ -155,7 +169,7 @@ impl StreamingService for StreamingServerImpl {
         println!("Received unprocessed subscribe request: {:?}", request);
         let request = request.into_inner();
 
-        if !self.valid_api_keys.contains(&request.api_key) {
+        if !validate_api_key(&request.api_key, &self.admin_service_api_url).await {
             return Err(Status::unauthenticated("Invalid API Key"));
         }
 
@@ -177,7 +191,7 @@ impl StreamingService for StreamingServerImpl {
         println!("Received processed subscribe request: {:?}", request);
         let request = request.into_inner();
 
-        if !self.valid_api_keys.contains(&request.api_key) {
+        if !validate_api_key(&request.api_key, &self.admin_service_api_url).await {
             return Err(Status::unauthenticated("Invalid API Key"));
         }
 

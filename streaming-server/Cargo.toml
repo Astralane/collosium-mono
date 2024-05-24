@@ -38,4 +38,3 @@ tonic = { workspace = true }
 futures = "0.1.31"
 futures-util = "0.3.29"
 base64 = "0.12.3"
-dotenv = "0.15.0"

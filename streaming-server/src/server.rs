@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::env;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -25,14 +24,17 @@ type UnprocessedSelectorsMap = Arc<Mutex<HashMap<Pubkey, Vec<Sender<Result<Subsc
 pub struct StreamingServerImpl {
     processed_selectors: ProcessedSelectorsMap,
     unprocessed_selectors: UnprocessedSelectorsMap,
+    admin_service_api_url: String,
 }
 
 impl StreamingServerImpl {
     pub fn new(processed_selectors: ProcessedSelectorsMap,
-               unprocessed_selectors: UnprocessedSelectorsMap) -> Self {
+               unprocessed_selectors: UnprocessedSelectorsMap,
+               admin_service_api_url: String) -> Self {
         StreamingServerImpl {
             processed_selectors,
             unprocessed_selectors,
+            admin_service_api_url,
         }
     }
 
@@ -140,17 +142,14 @@ impl Clone for StreamingServerImpl {
         StreamingServerImpl {
             processed_selectors: self.processed_selectors.clone(),
             unprocessed_selectors: self.unprocessed_selectors.clone(),
+            admin_service_api_url: self.admin_service_api_url.clone(),
         }
     }
 }
 
 
-async fn validate_api_key(api_key: &str) -> bool {
+async fn validate_api_key(api_key: &str, admin_service_api_url: &str) -> bool {
     let client = Client::new();
-    let admin_service_api_url = 
-        env::var("ASTRALINE_ADMIN_SERVICE_API_URL")
-        .expect("Admin service api url should be provided");
-
     let url = format!("{}/exists/{}", admin_service_api_url, api_key);
 
     match client.get(&url).send().await {
@@ -170,7 +169,7 @@ impl StreamingService for StreamingServerImpl {
         println!("Received unprocessed subscribe request: {:?}", request);
         let request = request.into_inner();
 
-        if !validate_api_key(&request.api_key).await {
+        if !validate_api_key(&request.api_key, &self.admin_service_api_url).await {
             return Err(Status::unauthenticated("Invalid API Key"));
         }
 
@@ -192,7 +191,7 @@ impl StreamingService for StreamingServerImpl {
         println!("Received processed subscribe request: {:?}", request);
         let request = request.into_inner();
 
-        if !validate_api_key(&request.api_key).await {
+        if !validate_api_key(&request.api_key, &self.admin_service_api_url).await {
             return Err(Status::unauthenticated("Invalid API Key"));
         }
 

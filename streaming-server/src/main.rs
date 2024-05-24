@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::{Arc};
 use tokio::sync::Mutex;
+use std::env;
 
 use tonic::Streaming;
 use tonic::transport::Server;
@@ -13,14 +14,19 @@ use jito_protos::streaming_service::streaming_service_server::StreamingServiceSe
 use crate::client::{get_geyser_client, get_relayer_client};
 use crate::server::StreamingServerImpl;
 
-use dotenv::dotenv; 
-
 mod client;
 mod server;
 
 #[tokio::main]
 async fn main() {
-    dotenv().ok();
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 2 {
+        eprintln!("Admin service api url should be provided");
+        std::process::exit(1);
+    }
+
+    let admin_service_api_url = args[1].clone();
 
     let mut relayer_client = get_relayer_client("http://localhost:11226")
         .await
@@ -43,7 +49,7 @@ async fn main() {
     let processed_selectors = Arc::new(Mutex::new(HashMap::new()));
     let unprocessed_selectors = Arc::new(Mutex::new(HashMap::new()));
 
-    let streaming_server = StreamingServerImpl::new(processed_selectors, unprocessed_selectors);
+    let streaming_server = StreamingServerImpl::new(processed_selectors, unprocessed_selectors, admin_service_api_url);
     let mut streaming_server_copy = streaming_server.clone();
 
     tokio::spawn(async move {

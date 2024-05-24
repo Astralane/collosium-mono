@@ -59,37 +59,38 @@ export class AstralineClient {
     });
   }
 
-  async sendBundle(
+  sendBundle(
     connection: web3.Connection,
     txs: web3.VersionedTransaction[],
     tipPayer: web3.Keypair,
     tipAccount: web3.PublicKey,
     tipAmount: number,
-  ) {
-    const resp = await connection.getLatestBlockhash('processed');
-    console.log('created bundle');
-    let bundle = new Bundle(txs, 10);
+  ): Promise<void> {
+    return connection.getLatestBlockhash('processed').then(resp => {
+      console.log('created bundle');
+      let bundle = new Bundle(txs, 10);
 
-    if (!tipPayer.publicKey.equals(tipAccount)) {
-      console.log('adding tip tx');
-      const mayBeBundle = bundle.addTipTx(
-        tipPayer,
-        tipAmount,
-        tipAccount,
-        resp.blockhash,
-      );
-      if (mayBeBundle instanceof Error) {
-        throw mayBeBundle;
+      if (!tipPayer.publicKey.equals(tipAccount)) {
+        console.log('adding tip tx');
+        const mayBeBundle = bundle.addTipTx(
+          tipPayer,
+          tipAmount,
+          tipAccount,
+          resp.blockhash,
+        );
+        if (mayBeBundle instanceof Error) {
+          throw mayBeBundle;
+        }
+        bundle = mayBeBundle;
       }
-      bundle = mayBeBundle;
-    }
 
-    console.log('sending bundle to validator');
-    bundleExchangeClient.sendBundle(bundle, (error, response) => {
-      if (error != null) {
-        console.log(error);
-      }
-      console.log(response);
+      console.log('sending bundle to validator');
+      bundleExchangeClient.sendBundle(bundle, (error, response) => {
+        if (error != null) {
+          console.log(error);
+        }
+        console.log(response);
+      });
     });
   }
 }

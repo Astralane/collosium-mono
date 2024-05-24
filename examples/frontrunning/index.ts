@@ -1,5 +1,4 @@
 import { AstralineClient } from '../../src/client/astralineClient';
-import { bundleClient } from '../../src/bundleClient';
 import { createMemoTransaction } from "./utils"
 import { Connection, Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
@@ -25,7 +24,7 @@ async function main() {
         let memoBeforeTx = await createMemoTransaction(CONNECTION, FROM_KEYPAIR, "memo before tx");
         let memoAfterTx = await createMemoTransaction(CONNECTION, FROM_KEYPAIR, "memo after tx");
 
-        bundleClient.sendBundle([memoBeforeTx, tx, memoAfterTx], FROM_KEYPAIR, FROM_KEYPAIR.publicKey, 100);
+        await client.sendBundle(CONNECTION, [memoBeforeTx, tx, memoAfterTx], FROM_KEYPAIR, FROM_KEYPAIR.publicKey, 100);
     });
 
     console.log("Registered all callbacks, listening...");

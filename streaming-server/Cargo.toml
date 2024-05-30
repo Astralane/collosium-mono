@@ -8,33 +8,22 @@ edition = { workspace = true }
 license = { workspace = true }
 publish = false
 
+[[bin]]
+name = "dummy"
+path = "src/dummy.rs"
+
 [dependencies]
+sqlx = { workspace = true }
 bincode = { workspace = true }
 clap = { workspace = true }
-crossbeam-channel = { workspace = true }
-dashmap = { workspace = true }
-env_logger = { workspace = true }
-hostname = { workspace = true }
-itertools = { workspace = true }
 jito-protos = { workspace = true }
-log = { workspace = true }
-openssl = { workspace = true }
-prost-types = { workspace = true }
-serde = { workspace = true }
-serde_yaml = { workspace = true }
-solana-address-lookup-table-program = { workspace = true }
 solana-client = { workspace = true }
-solana-core = { workspace = true }
-solana-metrics = { workspace = true }
-solana-net-utils = { workspace = true }
-solana-perf = { workspace = true }
 solana-program = { workspace = true }
 solana-sdk = { workspace = true }
-solana-validator = { workspace = true }
-tikv-jemallocator = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
 tonic = { workspace = true }
-futures = "0.1.31"
-futures-util = "0.3.29"
-base64 = "0.12.3"
+futures = { workspace = true }
+futures-util = { workspace = true }
+base64 = { workspace = true }
+prost = { workspace = true }

@@ -18,5 +18,5 @@ pub async fn get_geyser_client(geyser_url: &str) -> Result<GeyserClient<Channel>
 
 pub async fn create_grpc_channel(url: &str) -> Result<Channel> {
     let endpoint = Endpoint::from_shared(url.to_string()).expect("invalid url");
-    return Ok(endpoint.connect().await.unwrap());
+    return Ok(endpoint.connect().await.map_err(|err| format!("Failed to connect to grpc: {err}"))?);
 }

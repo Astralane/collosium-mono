@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::ToSocketAddrs;
 use std::sync::{Arc};
 use tokio::sync::Mutex;
 use clap::Parser;
@@ -20,8 +20,8 @@ mod server;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    #[arg(long, env, default_value = "20000")]
-    port: u16,
+    #[arg(long, env, default_value = "localhost:20000")]
+    bind_address: String,
 
     #[arg(long, env, default_value = "http://localhost:3000")]
     admin_server_url: String,
@@ -106,6 +106,10 @@ async fn main() {
             &args.db_schema,
         )).await.unwrap();
 
+    sqlx::migrate!("db/migrations")
+        .run(&db_pool)
+        .await.unwrap();
+
     let streaming_server = StreamingServerImpl::new(
         processed_selectors,
         unprocessed_selectors,
@@ -118,13 +122,12 @@ async fn main() {
         streaming_server_copy.serve(geyser_subscription, relayer_subscription).await;
     });
 
-    let server_addr = IpAddr::V4(Ipv4Addr::new(127,0,0,1));
-    println!("starting streaming server at {0}:{1}", server_addr, args.port);
+    println!("starting streaming server at {0}", args.bind_address);
     Server::builder()
         .add_service(StreamingServiceServer::new(
             streaming_server
         ))
-        .serve(SocketAddr::new(server_addr, args.port))
+        .serve(args.bind_address.to_socket_addrs().unwrap().next().unwrap())
         .await
         .expect("streaming server failed");
 

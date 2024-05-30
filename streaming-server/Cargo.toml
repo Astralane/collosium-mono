@@ -8,6 +8,10 @@ edition = { workspace = true }
 license = { workspace = true }
 publish = false
 
+[[bin]]
+name = "dummy"
+path = "src/dummy.rs"
+
 [dependencies]
 sqlx = { workspace = true }
 bincode = { workspace = true }

@@ -116,8 +116,8 @@ export class DynamicGraphqlService {
   private async getTableNameById(id: string): Promise<string | null> {
     const query = `
       SELECT table_name
-      FROM index_settings
-      WHERE id = $1
+      FROM index_configuration
+      WHERE access_key = $1
     `;
     const result = await this.connection.query(query, [id]);
     return result.length ? result[0].table_name : null;

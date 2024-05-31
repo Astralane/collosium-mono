@@ -10,7 +10,13 @@ export class DynamicGraphqlService {
 
   constructor(@InjectConnection() private readonly connection: Connection) {}
 
-  async generateSchema(tableName: string): Promise<GraphQLSchema> {
+  async generateSchema(id: string): Promise<GraphQLSchema> {
+    const tableName = await this.getTableNameById(id);
+    if (!tableName) {
+      this.logger.error(`Table not found for id ${id}`);
+      throw new Error('Table not found');
+    }
+
     const columns = await this.getTableColumns(tableName);
     if (columns.length === 0) {
       this.logger.error(`No columns found for table ${tableName}`);
@@ -25,8 +31,8 @@ export class DynamicGraphqlService {
 
   private async getTableColumns(tableName: string): Promise<any[]> {
     const query = `
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
+      SELECT column_name, data_type
+      FROM information_schema.columns
       WHERE table_name = $1
     `;
     const result = await this.connection.query(query, [tableName]);
@@ -54,7 +60,11 @@ export class DynamicGraphqlService {
       }
 
       type Query {
-        ${tableName}(${args}): [${tableName}]
+        ${tableName}(
+          ${args},
+          limit: Int,
+          page: Int
+        ): [${tableName}]
       }
 
       schema {
@@ -82,13 +92,34 @@ export class DynamicGraphqlService {
       Query: {
         [tableName]: async (_, args) => {
           const whereClauses = Object.keys(args)
+            .filter((key) => key !== 'limit' && key !== 'page')
             .map((key) => `${key} = '${args[key]}'`)
             .join(' AND ');
 
-          const query = `SELECT * FROM ${tableName} ${whereClauses ? `WHERE ${whereClauses}` : ''}`;
+          const limit = args.limit || 10;
+          const page = args.page || 1;
+          const offset = (page - 1) * limit;
+
+          const query = `
+            SELECT *
+            FROM ${tableName}
+            ${whereClauses ? `WHERE ${whereClauses}` : ''}
+            LIMIT ${limit} OFFSET ${offset}
+          `;
+
           return await this.connection.query(query);
         },
       },
     };
+  }
+
+  private async getTableNameById(id: string): Promise<string | null> {
+    const query = `
+      SELECT table_name
+      FROM index_settings
+      WHERE id = $1
+    `;
+    const result = await this.connection.query(query, [id]);
+    return result.length ? result[0].table_name : null;
   }
 }

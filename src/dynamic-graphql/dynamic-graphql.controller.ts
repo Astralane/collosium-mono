@@ -17,25 +17,25 @@ export class DynamicGraphqlController {
 
   constructor(private readonly dynamicGraphqlService: DynamicGraphqlService) {}
 
-  @Post(':tableName/graphql')
+  @Post(':id/graphql')
   async handleGraphqlRequest(
-    @Param('tableName') tableName: string,
+    @Param('id') id: string,
     @Req() req: Request,
     @Res() res: Response,
     @Next() next: NextFunction,
   ) {
     try {
-      const schema = await this.dynamicGraphqlService.generateSchema(tableName);
+      const schema = await this.dynamicGraphqlService.generateSchema(id);
       const server = new ApolloServer({ schema });
 
       await server.start();
       const middleware = server.getMiddleware({
-        path: `/api/v1/dataset/${tableName}/graphql`,
+        path: `/api/v1/dataset/${id}/graphql`,
       });
       return middleware(req, res, next);
     } catch (error) {
       this.logger.error(
-        `Error generating GraphQL schema for table ${tableName}: ${error.message}`,
+        `Error generating GraphQL schema for table ${id}: ${error.message}`,
       );
       res.status(500).send('Internal Server Error');
     }

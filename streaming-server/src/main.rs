@@ -1,21 +1,23 @@
 use std::collections::HashMap;
 use std::net::ToSocketAddrs;
-use std::sync::{Arc};
-use tokio::sync::Mutex;
+use std::sync::Arc;
+
 use clap::Parser;
+use sqlx::postgres::PgPoolOptions;
+use tokio::sync::Mutex;
 use tonic::transport::Server;
 
-use jito_protos::solana::geyser::{SubscribeTransactionUpdatesRequest};
+use jito_protos::solana::geyser::SubscribeTransactionUpdatesRequest;
 use jito_protos::streaming_service::streaming_service_server::StreamingServiceServer;
 
 use crate::client::{get_geyser_client, get_relayer_client};
+use crate::index::http_server::Indexer;
 use crate::server::StreamingServerImpl;
-
-use sqlx::postgres::PgPoolOptions;
 
 mod client;
 mod server;
-
+mod ldb;
+mod index;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -110,11 +112,43 @@ async fn main() {
         .run(&db_pool)
         .await.unwrap();
 
+    let db_pool = Arc::from(Mutex::from(db_pool));
+
+
+    let index_configs = Arc::new(Mutex::new(vec![]));
+    /* example:
+    vec![IndexConfiguration {
+        name: String::from("test"),
+        table_name: String::from("mich_test"),
+        columns: vec![String::from("block_slot"), String::from("program_id")],
+        filters: vec![
+            IndexFilterEntity {
+                column: String::from("block_slot"),
+                predicates: vec![IndexFilterPredicate::GT {value: String::from("111792")}]
+            },
+            IndexFilterEntity {
+                column: String::from("program_id"),
+                predicates: vec![IndexFilterPredicate::IN {value: vec![String::from("11111111111111111111111111111111")]}]
+            },
+            IndexFilterEntity {
+                column: String::from("account_arguments"),
+                predicates: vec![IndexFilterPredicate::CONTAINS {value: String::from("72i21TqCQw6oTGULXHNmuHkyrzyjbsGVdem1f4mUnAMJ")}]
+            },
+        ]
+    }]
+     */
+    let index_http_server = Indexer::new(db_pool.clone(), index_configs.clone()).await;
+
+    tokio::spawn(async move {
+        index_http_server.start().await;
+    });
+
     let streaming_server = StreamingServerImpl::new(
         processed_selectors,
         unprocessed_selectors,
         args.admin_server_url,
-        db_pool
+        db_pool,
+        index_configs.clone()
     );
     let mut streaming_server_copy = streaming_server.clone();
 
@@ -122,7 +156,7 @@ async fn main() {
         streaming_server_copy.serve(geyser_subscription, relayer_subscription).await;
     });
 
-    println!("starting streaming server at {0}", args.bind_address);
+    println!("starting streaming server at grpc://{0}", args.bind_address);
     Server::builder()
         .add_service(StreamingServiceServer::new(
             streaming_server

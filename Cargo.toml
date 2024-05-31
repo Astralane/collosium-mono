@@ -51,9 +51,12 @@ tonic = { version = "0.10.2", features = ["tls", "tls-roots", "tls-webpki-roots"
 tonic-build = "0.10.2"
 tower = { version = "0.4.1", features = ["limit"] }
 reqwest = "0.12.4"
-sqlx = { version = "0.6", features = [ "runtime-tokio-native-tls", "postgres" ] }
+sqlx = { version = "0.6", features = [ "runtime-tokio-native-tls", "postgres", "uuid" ] }
 futures = "0.1.31"
 base64 = "0.12.3"
+serde = { version = "1.0.160", features = ["derive"] }
+serde_json = "1.0.96"
+actix-web = "4"
 
 [profile.release]
 # thin has minimal overhead vs none (default): https://blog.llvm.org/2016/06/thinlto-scalable-and-incremental-lto.html

@@ -9,17 +9,21 @@ use solana_sdk::bs58;
 use solana_sdk::packet::PACKET_DATA_SIZE;
 use solana_sdk::transaction::VersionedTransaction;
 use sqlx::{Pool, Postgres};
-use sqlx::postgres::{PgQueryResult};
+use sqlx::postgres::PgQueryResult;
 use tokio::sync::mpsc::{channel, Sender};
 use tokio::sync::Mutex;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status, Streaming};
 
 use jito_protos::relayer::subscribe_packets_response::Msg;
-use jito_protos::solana::geyser::{TimestampedTransactionUpdate};
+use jito_protos::solana::geyser::TimestampedTransactionUpdate;
 use jito_protos::streaming_service::streaming_service_server::StreamingService;
 use jito_protos::streaming_service::SubscribePacketsRequest;
 use jito_protos::streaming_service::SubscribePacketsResponse;
+
+use crate::index::parser::IndexConfiguration;
+use crate::ldb::solana_instructions;
+use crate::ldb::solana_instructions::{SolanaInstruction, SolanaInstructionsColumn};
 
 type ProcessedSelectorsMap = Arc<Mutex<HashMap<Pubkey, Vec<Sender<Result<TimestampedTransactionUpdate, Status>>>>>>;
 type UnprocessedSelectorsMap = Arc<Mutex<HashMap<Pubkey, Vec<Sender<Result<SubscribePacketsResponse, Status>>>>>>;
@@ -28,20 +32,23 @@ pub struct StreamingServerImpl {
     processed_selectors: ProcessedSelectorsMap,
     unprocessed_selectors: UnprocessedSelectorsMap,
     admin_service_api_url: String,
-    db_pool: Pool<Postgres>,
+    db_pool: Arc<Mutex<Pool<Postgres>>>,
+    index_configs: Arc<Mutex<Vec<IndexConfiguration>>>
 }
 
 impl StreamingServerImpl {
     pub fn new(processed_selectors: ProcessedSelectorsMap,
                unprocessed_selectors: UnprocessedSelectorsMap,
                admin_service_api_url: String,
-               db_pool: Pool<Postgres>,
+               db_pool: Arc<Mutex<Pool<Postgres>>>,
+               index_configs: Arc<Mutex<Vec<IndexConfiguration>>>
     ) -> Self {
         StreamingServerImpl {
             processed_selectors,
             unprocessed_selectors,
             admin_service_api_url,
             db_pool,
+            index_configs,
         }
     }
 
@@ -87,6 +94,21 @@ impl StreamingServerImpl {
     async fn process_geyser(&mut self, geyser_packet: TimestampedTransactionUpdate) {
         let resp = geyser_packet;
         self.store_ldb_data(resp.clone()).await.unwrap();
+
+        let instructions = solana_instructions::parse_instruction(&resp.clone());
+        let index_configs = self.index_configs.lock().await;
+
+        if !index_configs.is_empty() {
+            for instruction in instructions {
+                for index_config in index_configs.iter() {
+                    let is_match = match_index_packet(&instruction, index_config).await;
+                    if is_match {
+                        self.store_index_instruction(&instruction, &index_config).await.expect("failed to store instruction");
+                    }
+
+                }
+            }
+        }
 
         let mut map_mut = self.processed_selectors.lock().await;
         let map = map_mut.clone();
@@ -173,6 +195,50 @@ impl StreamingServerImpl {
         }
     }
 
+    async fn store_index_instruction(
+        &self,
+        instruction: &SolanaInstruction,
+        index_config: &IndexConfiguration,
+    ) -> Result<(), String> {
+        let column_names = index_config.columns.join(", ");
+
+        let column_placeholders = index_config.columns
+            .iter()
+            .enumerate()
+            .map(|(index, _)| format!("${}", index + 1))
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        let query = format!("insert into {0}({1}) values ({2})",
+            index_config.table_name,
+            column_names,
+            column_placeholders
+        );
+
+        let mut query = sqlx::query(&query);
+
+        for column_name in index_config.columns.iter() {
+            query = match solana_instructions::parse_column(&column_name, instruction).unwrap() {
+                SolanaInstructionsColumn::BlockSlot(block_slot) => query.bind(block_slot as i64),
+                SolanaInstructionsColumn::TxId(tx_id) => query.bind(tx_id),
+                SolanaInstructionsColumn::TxIndex(tx_index) => query.bind(tx_index as i64),
+                SolanaInstructionsColumn::ProgramId(program_id) => query.bind(program_id),
+                SolanaInstructionsColumn::IsInner(is_inner) => query.bind(is_inner),
+                SolanaInstructionsColumn::Data(data) => query.bind(data),
+                SolanaInstructionsColumn::AccountArguments(account_arguments) => query.bind(account_arguments),
+                SolanaInstructionsColumn::TxSigner(tx_signer) => query.bind(tx_signer),
+                SolanaInstructionsColumn::TxSuccess(tx_success) => query.bind(tx_success),
+            }
+        }
+
+        let db_lock = &self.db_pool.lock().await;
+        let mut connection = db_lock.acquire().await.unwrap();
+
+        query.execute(&mut connection).await.unwrap();
+
+        Ok(())
+    }
+
     async fn store_ldb_data(
         &mut self,
         packet: TimestampedTransactionUpdate
@@ -184,14 +250,13 @@ impl StreamingServerImpl {
         let message = tx.message.ok_or("no message")?;
         let instructions = message.instructions;
 
-
         for instruction in instructions {
             self.store_instruction(
                 packet_tx.slot as i64, &packet_tx.signature, packet_tx.tx_idx as i64,
                 &message.account_keys, instruction.program_id_index as usize,
                 false, &instruction.accounts, &instruction.data, meta.err.is_none()
             ).await
-                .map(|res | { println!("instruction stored: {0} ", packet_tx.signature); res })
+                // .map(|res | { println!("instruction stored: {0} ", packet_tx.signature); res })
                 .map_err(|err| { format!("failed to store instruction: {0}, err: {1}", packet_tx.signature, err)})?;
         }
 
@@ -202,14 +267,13 @@ impl StreamingServerImpl {
                     &message.account_keys, inner_instruction.program_id_index as usize,
                     false, &inner_instruction.accounts, &inner_instruction.data, meta.err.is_none()
                 ).await
-                    .map(|res | { println!("inner instruction stored: {0} ", packet_tx.signature); res})
+                    // .map(|res | { println!("inner instruction stored: {0} ", packet_tx.signature); res})
                     .map_err(|err| { format!("failed to store inner instruction: {0}, err: {1}", packet_tx.signature, err)})?;
             }
         }
 
         Ok(())
     }
-
 
     async fn store_instruction(
         &self,
@@ -240,6 +304,8 @@ impl StreamingServerImpl {
 
         let signer = account_arguments[0].clone();
 
+        let db_lock = &self.db_pool.lock().await;
+        let mut connection = db_lock.acquire().await.unwrap();
         sqlx::query(
             "insert into solana_instructions (block_slot, tx_id, tx_index, program_id, is_inner, data, account_arguments, tx_signer, tx_success) \
                     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)")
@@ -252,7 +318,7 @@ impl StreamingServerImpl {
             .bind(account_arguments)
             .bind(signer)
             .bind(tx_success)
-            .execute(&self.db_pool).await
+            .execute(&mut connection).await
     }
 }
 
@@ -263,8 +329,31 @@ impl Clone for StreamingServerImpl {
             unprocessed_selectors: self.unprocessed_selectors.clone(),
             admin_service_api_url: self.admin_service_api_url.clone(),
             db_pool: self.db_pool.clone(),
+            index_configs: self.index_configs.clone()
         }
     }
+}
+
+// block_slot, tx_id, tx_index, program_id, is_inner, data, account_arguments, tx_signer, tx_success
+async fn match_index_packet(instruction: &SolanaInstruction, index_config: &IndexConfiguration) -> bool {
+    if index_config.filters.is_empty() {
+        return false
+    }
+
+    for filter_entity in index_config.filters.iter() {
+        for filter_predicate in filter_entity.predicates.iter() {
+            let column = solana_instructions::parse_column(&filter_entity.column, instruction);
+            if let Ok(column) = column {
+                if !column.check(filter_predicate) {
+                    return false
+                }
+            } else {
+                return false
+            }
+        }
+    }
+
+    true
 }
 
 

@@ -2,6 +2,7 @@
 use std::println as info;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Clone)]
 pub struct IndexConfigurationUnparsed {

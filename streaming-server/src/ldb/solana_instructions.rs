@@ -31,7 +31,6 @@ pub(crate) enum SolanaInstructionsColumn {
     TxSuccess(bool)
 }
 
-
 impl SolanaInstructionsColumn {
     pub fn check(&self, filter_predicate: &IndexFilterPredicate) -> bool {
         return match self {
@@ -91,6 +90,107 @@ impl SolanaInstructionsColumn {
                     IndexFilterPredicate::CONTAINS { value } => {
                         account_arguments.contains(value)
                     }
+                }
+            }
+            SolanaInstructionsColumn::TxId(tx_id) => {
+                match filter_predicate {
+                    IndexFilterPredicate::LT {value: _value } => false,
+                    IndexFilterPredicate::GT {value: _value } => false,
+                    IndexFilterPredicate::EQ { value } => *tx_id == *value,
+                    IndexFilterPredicate::IN { value } => {
+                        for item in value {
+                            if *tx_id == *item {
+                                return  true
+                            }
+                        }
+                        false
+                    },
+                    IndexFilterPredicate::CONTAINS { value } => *tx_id == *value,
+                }
+            }
+            SolanaInstructionsColumn::TxIndex(tx_idx) => {
+                match filter_predicate {
+                    IndexFilterPredicate::LT { value } => {
+                        let value: u64 = value.parse::<u64>().unwrap();
+                        *tx_idx < value
+                    },
+                    IndexFilterPredicate::GT { value } => {
+                        let value: u64 = value.parse::<u64>().unwrap();
+                        *tx_idx > value
+                    },
+                    IndexFilterPredicate::EQ { value } => {
+                        let value: u64 = value.parse::<u64>().unwrap();
+                        *tx_idx == value
+                    },
+                    IndexFilterPredicate::IN { value } => {
+                        for item in value {
+                            let value: u64 = item.parse::<u64>().unwrap();
+                            if *tx_idx == value {
+                                return true
+                            }
+                        }
+                        false
+                    },
+                    IndexFilterPredicate::CONTAINS { value } => {
+                        let value: u64 = value.parse::<u64>().unwrap();
+                        *tx_idx == value
+                    },
+                }
+            }
+            SolanaInstructionsColumn::IsInner(is_inner) => {
+                match filter_predicate {
+                    IndexFilterPredicate::LT { value: _value } => false,
+                    IndexFilterPredicate::GT { value: _value } => false,
+                    IndexFilterPredicate::EQ { value } => {
+                        let value: bool = value.parse::<bool>().unwrap();
+                        *is_inner == value
+                    },
+                    IndexFilterPredicate::IN { value: _value } => false,
+                    IndexFilterPredicate::CONTAINS { value: _value } => false,
+                }
+            }
+            SolanaInstructionsColumn::Data(data) => {
+                match filter_predicate {
+                    IndexFilterPredicate::LT {value: _value } => false,
+                    IndexFilterPredicate::GT {value: _value } => false,
+                    IndexFilterPredicate::EQ { value } => *data == *value,
+                    IndexFilterPredicate::IN { value } => {
+                        for item in value {
+                            if *data == *item {
+                                return  true
+                            }
+                        }
+                        false
+                    },
+                    IndexFilterPredicate::CONTAINS { value } => *data == *value,
+                }
+            }
+            SolanaInstructionsColumn::TxSigner(tx_signer) => {
+                match filter_predicate {
+                    IndexFilterPredicate::LT {value: _value } => false,
+                    IndexFilterPredicate::GT {value: _value } => false,
+                    IndexFilterPredicate::EQ { value } => *tx_signer == *value,
+                    IndexFilterPredicate::IN { value } => {
+                        for item in value {
+                            if *tx_signer == *item {
+                                return true
+                            }
+                        }
+                        false
+                    }
+                    IndexFilterPredicate::CONTAINS { value } => *tx_signer == *value,
+                }
+            }
+            SolanaInstructionsColumn::TxSuccess(tx_success) => {
+                match filter_predicate {
+                    IndexFilterPredicate::LT { value: _value } => false,
+                    IndexFilterPredicate::GT { value: _value } => false,
+                    IndexFilterPredicate::EQ { value } => {
+                        let value: bool = value.parse::<bool>().unwrap();
+                        *tx_success == value
+                    },
+                    IndexFilterPredicate::IN { value: _value } => false,
+                    IndexFilterPredicate::CONTAINS { value: _value } => false,
                 }
             }
             _ => false

@@ -337,6 +337,7 @@ impl Clone for StreamingServerImpl {
 // block_slot, tx_id, tx_index, program_id, is_inner, data, account_arguments, tx_signer, tx_success
 async fn match_index_packet(instruction: &SolanaInstruction, index_config: &IndexConfiguration) -> bool {
     if index_config.filters.is_empty() {
+        println!("No filters found for index configuration");
         return false
     }
 
@@ -344,15 +345,18 @@ async fn match_index_packet(instruction: &SolanaInstruction, index_config: &Inde
         for filter_predicate in filter_entity.predicates.iter() {
             let column = solana_instructions::parse_column(&filter_entity.column, instruction);
             if let Ok(column) = column {
-                if !column.check(filter_predicate) {
+                let predicate = filter_predicate.to_predicate();
+                if !column.check(&*predicate) {
+                    println!("Instruction did not match filter: column: {:?}, predicate: {:?}", filter_entity.column, filter_predicate);
                     return false
                 }
             } else {
+                println!("Failed to parse column: {}", filter_entity.column);
                 return false
             }
         }
     }
-
+    println!("Instruction matched all filters");
     true
 }
 

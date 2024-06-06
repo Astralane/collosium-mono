@@ -1,10 +1,9 @@
+use serde_json::Value;
 use solana_sdk::bs58;
 
 use astraline_streaming_server::Result;
 use jito_protos::solana::geyser::{TimestampedTransactionUpdate, TransactionUpdate};
 use jito_protos::solana::storage::confirmed_block::{ConfirmedTransaction, Message, Transaction, TransactionStatusMeta};
-
-use crate::index::parser::IndexFilterPredicate;
 
 pub(crate) struct SolanaInstruction {
     block_slot: u64,
@@ -18,7 +17,6 @@ pub(crate) struct SolanaInstruction {
     tx_success: bool,
 }
 
-// value, type
 pub(crate) enum SolanaInstructionsColumn {
     BlockSlot(u64),
     TxId(String),
@@ -28,72 +26,103 @@ pub(crate) enum SolanaInstructionsColumn {
     Data(String),
     AccountArguments(Vec<String>),
     TxSigner(String),
-    TxSuccess(bool)
+    TxSuccess(bool),
 }
 
+pub trait Predicate<T> {
+    fn apply(&self, value: &T) -> bool;
+}
+
+pub struct LtPredicate {
+    pub threshold: Value,
+}
+
+impl Predicate<Value> for LtPredicate {
+    fn apply(&self, value: &Value) -> bool {
+        if let (Some(threshold), Some(val)) = (self.threshold.as_f64(), value.as_f64()) {
+            return val < threshold;
+        }
+        if let (Some(threshold), Some(val)) = (self.threshold.as_u64(), value.as_u64()) {
+            return val < threshold;
+        }
+        if let (Some(threshold), Some(val)) = (self.threshold.as_i64(), value.as_i64()) {
+            return val < threshold;
+        }
+        false
+    }
+}
+
+pub struct GtPredicate {
+    pub threshold: Value,
+}
+
+impl Predicate<Value> for GtPredicate {
+    fn apply(&self, value: &Value) -> bool {
+        if let (Some(threshold), Some(val)) = (self.threshold.as_f64(), value.as_f64()) {
+            return val > threshold;
+        }
+        if let (Some(threshold), Some(val)) = (self.threshold.as_u64(), value.as_u64()) {
+            return val > threshold;
+        }
+        if let (Some(threshold), Some(val)) = (self.threshold.as_i64(), value.as_i64()) {
+            return val > threshold;
+        }
+        false
+    }
+}
+
+pub struct EqPredicate {
+    pub target: Value,
+}
+
+impl Predicate<Value> for EqPredicate {
+    fn apply(&self, value: &Value) -> bool {
+        value == &self.target
+    }
+}
+
+pub struct InPredicate {
+    pub set: Vec<Value>,
+}
+
+impl Predicate<Value> for InPredicate {
+    fn apply(&self, value: &Value) -> bool {
+        self.set.contains(value)
+    }
+}
+
+pub struct ContainsPredicate {
+    pub elements: Vec<Value>,
+}
+
+impl Predicate<Value> for ContainsPredicate {
+    fn apply(&self, value: &Value) -> bool {
+        if let Some(array) = value.as_array() {
+            for element in &self.elements {
+                if array.contains(element) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+}
 
 impl SolanaInstructionsColumn {
-    pub fn check(&self, filter_predicate: &IndexFilterPredicate) -> bool {
-        return match self {
-            SolanaInstructionsColumn::BlockSlot(block_slot) => {
-                match filter_predicate {
-                    IndexFilterPredicate::LT { value } => {
-                        let value: u64 = value.parse::<u64>().unwrap();
-                        *block_slot < value
-                    }
-                    IndexFilterPredicate::GT { value } => {
-                        let value: u64 = value.parse::<u64>().unwrap();
-                        *block_slot > value
-                    }
-                    IndexFilterPredicate::EQ { value } => {
-                        let value: u64 = value.parse::<u64>().unwrap();
-                        *block_slot == value
-                    }
-                    IndexFilterPredicate::IN { value } => {
-                        for item in value {
-                            let value: u64 = item.parse::<u64>().unwrap();
-                            if *block_slot == value {
-                                return true
-                            }
-                        }
-                        false
-                    }
-                    IndexFilterPredicate::CONTAINS { value } => {
-                        let value: u64 = value.parse::<u64>().unwrap();
-                        *block_slot == value
-                    }
-                }
-            }
-            SolanaInstructionsColumn::ProgramId(program_id) => {
-                match filter_predicate {
-                    IndexFilterPredicate::LT {value: _value } => false,
-                    IndexFilterPredicate::GT {value: _value } => false,
-                    IndexFilterPredicate::EQ { value } => *program_id == *value,
-                    IndexFilterPredicate::IN { value } => {
-                        for item in value {
-                            if *program_id == *item {
-                                return true
-                            }
-                        }
-                        false
-                    }
-                    IndexFilterPredicate::CONTAINS { value } => *program_id == *value,
-                }
-            }
+    pub fn check(&self, predicate: &dyn Predicate<Value>) -> bool {
+        match self {
+            SolanaInstructionsColumn::BlockSlot(block_slot) => predicate.apply(&Value::from(*block_slot)),
+            SolanaInstructionsColumn::TxId(tx_id) => predicate.apply(&Value::from(tx_id.clone())),
+            SolanaInstructionsColumn::TxIndex(tx_index) => predicate.apply(&Value::from(*tx_index)),
+            SolanaInstructionsColumn::ProgramId(program_id) => predicate.apply(&Value::from(program_id.clone())),
+            SolanaInstructionsColumn::IsInner(is_inner) => predicate.apply(&Value::from(*is_inner)),
+            SolanaInstructionsColumn::Data(data) => predicate.apply(&Value::from(data.clone())),
             SolanaInstructionsColumn::AccountArguments(account_arguments) => {
-                match filter_predicate {
-                    IndexFilterPredicate::LT {value: _value } => false,
-                    IndexFilterPredicate::GT {value: _value } => false,
-                    IndexFilterPredicate::EQ { value } => {
-                        return account_arguments.len() == 1 && account_arguments[0] == *value
-                    }
-                    IndexFilterPredicate::IN { value: _value } => false,
-                    IndexFilterPredicate::CONTAINS { value } => {
-                        account_arguments.contains(value)
-                    }
-                }
+                let account_arguments_value = Value::Array(account_arguments.iter().map(|arg| Value::String(arg.clone())).collect());
+                predicate.apply(&account_arguments_value)
             }
-            _ => false
+            SolanaInstructionsColumn::TxSigner(tx_signer) => predicate.apply(&Value::from(tx_signer.clone())),
+            SolanaInstructionsColumn::TxSuccess(tx_success) => predicate.apply(&Value::from(*tx_success)),
         }
     }
 }
@@ -101,7 +130,7 @@ impl SolanaInstructionsColumn {
 pub(crate) fn parse_instruction(value: &TimestampedTransactionUpdate) -> Vec<SolanaInstruction> {
     match value {
         TimestampedTransactionUpdate {
-            transaction: Some(TransactionUpdate  {
+            transaction: Some(TransactionUpdate {
                                   slot,
                                   signature,
                                   is_vote: false,
@@ -137,13 +166,11 @@ pub(crate) fn parse_instruction(value: &TimestampedTransactionUpdate) -> Vec<Sol
                 let data = bs58::encode(data).into_string();
 
                 let account_arguments: Vec<String> = accounts.iter()
-                    .map(
-                        |account_index| {
-                            let account_index = *account_index as usize;
-                            let account = bs58::encode(&account_keys[account_index]).into_string();
-                            account
-                        }
-                    )
+                    .map(|account_index| {
+                        let account_index = *account_index as usize;
+                        let account = bs58::encode(&account_keys[account_index]).into_string();
+                        account
+                    })
                     .collect();
 
                 let tx_signer = account_arguments[0].clone();
@@ -172,9 +199,7 @@ pub(crate) fn parse_instruction(value: &TimestampedTransactionUpdate) -> Vec<Sol
             }
             result
         }
-        _ => {
-            return vec![];
-        }
+        _ => vec![],
     }
 }
 
@@ -189,9 +214,7 @@ pub(crate) fn parse_column(column_name: &str, instruction: &SolanaInstruction) -
         "account_arguments" => Ok(SolanaInstructionsColumn::AccountArguments(instruction.account_arguments.clone())),
         "tx_signer" => Ok(SolanaInstructionsColumn::TxSigner(instruction.tx_signer.clone())),
         "tx_success" => Ok(SolanaInstructionsColumn::TxSuccess(instruction.tx_success)),
-        &_ => {
-            Err(format!("Unknown column name {column_name}"))
-        }
+        _ => Err(format!("Unknown column name {column_name}")),
     }
 }
 
@@ -206,8 +229,53 @@ pub(crate) fn column_type(column_name: &str) -> Result<String> {
         "account_arguments" => Ok(String::from("text[]")),
         "tx_signer" => Ok(String::from("text")),
         "tx_success" => Ok(String::from("boolean")),
-        &_ => {
-            Err(format!("Unknown column name {column_name}"))
-        }
+        _ => Err(format!("Unknown column name {column_name}")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ldb::solana_instructions::SolanaInstructionsColumn;
+
+    #[test]
+    fn test_block_slot_predicates() {
+        let column = SolanaInstructionsColumn::BlockSlot(1716973850);
+
+        let gt_predicate = GtPredicate { threshold: Value::from(1716973800) };
+        assert!(column.check(&gt_predicate));
+
+        let lt_predicate = LtPredicate { threshold: Value::from(1716973900) };
+        assert!(column.check(&lt_predicate));
+
+        let eq_predicate = EqPredicate { target: Value::from(1716973850) };
+        assert!(column.check(&eq_predicate));
+
+        let in_predicate = InPredicate { set: vec![Value::from(1716973850), Value::from(1716973900)] };
+        assert!(column.check(&in_predicate));
+    }
+
+    #[test]
+    fn test_tx_id_predicates() {
+        let column = SolanaInstructionsColumn::TxId("test_tx_id".to_string());
+        let eq_predicate = EqPredicate { target: Value::from("test_tx_id".to_string()) };
+        assert!(column.check(&eq_predicate));
+
+        let in_predicate = InPredicate { set: vec![Value::from("test_tx_id".to_string()), Value::from("other_tx_id".to_string())] };
+        assert!(column.check(&in_predicate));
+    }
+
+    #[test]
+    fn test_tx_success_predicate() {
+        let column = SolanaInstructionsColumn::TxSuccess(true);
+        let eq_predicate = EqPredicate { target: Value::from(true) };
+        assert!(column.check(&eq_predicate));
+    }
+
+    #[test]
+    fn test_account_arguments_predicate() {
+        let column = SolanaInstructionsColumn::AccountArguments(vec!["arg1".to_string(), "arg2".to_string()]);
+        let contains_predicate = ContainsPredicate { elements: vec![Value::from("arg1".to_string())] };
+        assert!(column.check(&contains_predicate));
     }
 }

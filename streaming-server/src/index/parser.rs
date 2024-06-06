@@ -2,6 +2,8 @@
 use std::println as info;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use crate::ldb::solana_instructions::{ContainsPredicate, EqPredicate, GtPredicate, InPredicate, LtPredicate, Predicate};
 
 #[derive(Debug, Clone)]
 pub struct IndexConfigurationUnparsed {
@@ -12,15 +14,27 @@ pub struct IndexConfigurationUnparsed {
 #[serde(tag = "type")]
 pub enum IndexFilterPredicate {
     #[serde(rename(deserialize = "lt", serialize = "lt"))]
-    LT { value: String },
+    LT { value: Value },
     #[serde(rename(deserialize = "gt", serialize = "gt"))]
-    GT { value: String },
+    GT { value: Value },
     #[serde(rename(deserialize = "eq", serialize = "eq"))]
-    EQ { value: String },
+    EQ { value: Value },
     #[serde(rename(deserialize = "in", serialize = "in"))]
-    IN { value: Vec<String> },
+    IN { value: Vec<Value> },
     #[serde(rename(deserialize = "contains", serialize = "contains"))]
-    CONTAINS { value: String },
+    CONTAINS { value: Vec<Value> },
+}
+
+impl IndexFilterPredicate {
+    pub fn to_predicate(&self) -> Box<dyn Predicate<Value>> {
+        match self {
+            IndexFilterPredicate::LT { value } => Box::new(LtPredicate { threshold: value.clone() }),
+            IndexFilterPredicate::GT { value } => Box::new(GtPredicate { threshold: value.clone() }),
+            IndexFilterPredicate::EQ { value } => Box::new(EqPredicate { target: value.clone() }),
+            IndexFilterPredicate::IN { value } => Box::new(InPredicate { set: value.clone() }),
+            IndexFilterPredicate::CONTAINS { value } => Box::new(ContainsPredicate { elements: value.clone() }),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -43,33 +57,23 @@ fn test_parsing() {
     "name": "All Memos from 09:10:00 to 09:11:40",
     "table_name": "test_table",
     "columns": [
-        "block_height",
+        "block_slot",
+        "tx_id",
         "tx_index",
-        "inner_instruction_index",
         "program_id",
+        "is_inner",
+        "data",
         "account_arguments",
-        "data"
+        "tx_signer",
+        "tx_success"
     ],
     "filters": [
         {
-            "column": "block_time",
+            "column": "account_arguments",
             "predicates": [
-                {
-                    "type": "gt",
-                    "value": "1716973800"
-                },
                 {
                     "type": "lt",
-                    "value": "1716973900"
-                }
-            ]
-        },
-        {
-            "column": "program_id",
-            "predicates": [
-                {
-                    "type": "eq",
-                    "value": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+                    "value": ["4dv4puYib9XZXHrTN5csFxzfWKSmetTu1dLsJWNNV2XZ"]
                 }
             ]
         }

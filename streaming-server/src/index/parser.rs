@@ -51,6 +51,28 @@ pub struct IndexConfiguration {
     pub filters: Vec<IndexFilterEntity>,
 }
 
+/* example:
+    vec![IndexConfiguration {
+        name: String::from("test"),
+        table_name: String::from("mich_test"),
+        columns: vec![String::from("block_slot"), String::from("program_id")],
+        filters: vec![
+            IndexFilterEntity {
+                column: String::from("block_slot"),
+                predicates: vec![IndexFilterPredicate::GT {value: String::from("111792")}]
+            },
+            IndexFilterEntity {
+                column: String::from("program_id"),
+                predicates: vec![IndexFilterPredicate::IN {value: vec![String::from("11111111111111111111111111111111")]}]
+            },
+            IndexFilterEntity {
+                column: String::from("account_arguments"),
+                predicates: vec![IndexFilterPredicate::CONTAINS {value: String::from("72i21TqCQw6oTGULXHNmuHkyrzyjbsGVdem1f4mUnAMJ")}]
+            },
+        ]
+    }]
+     */
+
 #[test]
 fn test_parsing() {
     let json = r#"{

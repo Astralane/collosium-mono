@@ -1,18 +1,34 @@
 use std::sync::Arc;
 
 use actix_web::{App, Error, HttpResponse, HttpServer, web};
+use actix_web::error::UrlencodedError::ContentType;
+use actix_web::web::Bytes;
+use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
+use tokio::task::spawn_blocking;
 use uuid::Uuid;
+use astraline_streaming_server::Result;
+use crate::idl::idl::IDLDownloader;
+use futures::executor::block_on;
+use serde_json::json;
+use serde_json::Value::Null;
+use crate::index::parser::IndexFilterPredicate::EQ;
 
 use crate::ldb::solana_instructions;
 
-use super::parser::IndexConfiguration;
+use super::parser::{IndexConfiguration, IndexFilterPredicate};
 
 #[derive(Clone)]
 struct DataWrapper {
     db: Arc<Mutex<Pool<Postgres>>>,
     index_configs: Arc<Mutex<Vec<IndexConfiguration>>>,
+    idl_downloader: Arc<Mutex<IDLDownloader>>,
+}
+
+#[derive(Deserialize)]
+struct ProgramIDLQuery {
+    program: String,
 }
 
 pub struct Indexer {
@@ -25,10 +41,16 @@ struct IndexerHttpServer {
 
 impl Indexer {
     pub async fn new(db_pool: Arc<Mutex<Pool<Postgres>>>,
-                     index_configs: Arc<Mutex<Vec<IndexConfiguration>>>) -> Self {
+                     index_configs: Arc<Mutex<Vec<IndexConfiguration>>>,
+                     rpc_url: &str
+    ) -> Self {
         Self {
             server: IndexerHttpServer::new(9696),
-            data: DataWrapper { db: db_pool, index_configs },
+            data: DataWrapper {
+                db: db_pool.clone(),
+                index_configs,
+                idl_downloader: Arc::new(Mutex::new(IDLDownloader::new(rpc_url, db_pool))),
+            },
         }
     }
 
@@ -48,6 +70,7 @@ impl IndexerHttpServer {
             App::new()
                 .app_data(web::Data::new(db.clone()))
                 .service(web::resource("/index").route(web::post().to(Self::create_new_index)))
+                .service(web::resource("/idl").route(web::get().to(Self::fetch_idl)))
         })
             .bind(addr)
             .unwrap()
@@ -55,10 +78,22 @@ impl IndexerHttpServer {
         server.await.expect("http server failed to start");
     }
 
+    async fn fetch_idl(
+        program: web::Query<ProgramIDLQuery>,
+        data: web::Data<DataWrapper>,
+    ) -> std::result::Result<HttpResponse, Error> {
+        let program = program.program.clone();
+
+        let idl_downloader = data.idl_downloader.lock().await;
+        let idl = idl_downloader.download_idl(&program).await.unwrap();
+
+        Ok(HttpResponse::Ok().content_type(actix_web::http::header::ContentType::json()).body(idl))
+    }
+
     async fn create_new_index(
         mut raw_data: web::Json<IndexConfiguration>,
         data: web::Data<DataWrapper>,
-    ) -> Result<HttpResponse, Error> {
+    ) -> std::result::Result<HttpResponse, Error> {
         let json_config = serde_json::to_string(&raw_data).unwrap();
         let mut connection = data.db.lock().await.acquire().await.unwrap();
 
@@ -71,7 +106,7 @@ impl IndexerHttpServer {
         )
             .bind(access_key)
             .bind(&raw_data.table_name)
-            .bind(sqlx::types::Json(json_config))
+            .bind(sqlx::types::Json(json_config.clone()))
             .execute(&mut connection)
             .await;
 
@@ -96,9 +131,40 @@ impl IndexerHttpServer {
             return Ok(HttpResponse::InternalServerError().finish())
         }
 
+        maybe_store_id(data.idl_downloader.clone(), &json_config).await.unwrap();
+
         let mut configs = data.index_configs.lock().await;
         configs.push(raw_data.0);
 
         Ok(HttpResponse::Ok().json(format!("{}", access_key)))
     }
+}
+
+async fn maybe_store_id(idl_downloader: Arc<Mutex<IDLDownloader>>, json_config: &str) -> Result<()> {
+    let idl_downloader = idl_downloader.lock().await;
+    let config: IndexConfiguration = serde_json::from_str(json_config).unwrap();
+
+    if let Some(programPredicate) = config.filters.iter().find(|filter| { filter.column == "program" }) {
+        let eq_predicate = programPredicate.predicates.iter().find(|index_predicate| {
+            match index_predicate {
+                EQ { .. } => true,
+                _ => false
+            }
+        }).map(|index_predicate| {
+            match index_predicate {
+                EQ {value} => value,
+                _ => &Null
+            }
+        });
+        if let Some(eq_predicate) = eq_predicate {
+            let program_pubkey = eq_predicate.as_str().unwrap();
+            println!("{program_pubkey}");
+
+            if let Ok(program_idl) = idl_downloader.download_idl(program_pubkey).await {
+                idl_downloader.store_idl(program_pubkey, &program_idl).await.unwrap();
+            }
+        }
+    }
+
+    Ok(())
 }

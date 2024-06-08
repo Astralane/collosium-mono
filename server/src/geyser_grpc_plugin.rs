@@ -1,5 +1,9 @@
 //! Implements the geyser plugin interface.
 
+use std::cell::UnsafeCell;
+use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
+use std::time::Duration;
 use std::{
     fs::File,
     io::Read,
@@ -9,7 +13,6 @@ use std::{
     },
     time::SystemTime,
 };
-use std::sync::atomic::AtomicBool;
 
 use bs58;
 use crossbeam_channel::{bounded, Sender, TrySendError};
@@ -21,7 +24,10 @@ use jito_geyser_protos::solana::{
     },
     storage::confirmed_block::ConfirmedTransaction,
 };
+use kafka::client::RequiredAcks;
+use kafka::producer::{Producer, Record};
 use log::*;
+use prost::Message;
 use serde_derive::Deserialize;
 use serde_json;
 use solana_geyser_plugin_interface::geyser_plugin_interface::{
@@ -47,13 +53,13 @@ pub struct PluginData {
     highest_write_slot: Arc<AtomicU64>,
 
     is_startup_completed: AtomicBool,
-    ignore_startup_updates: bool
+    ignore_startup_updates: bool,
 }
-
 #[derive(Default)]
 pub struct GeyserGrpcPlugin {
     /// Initialized on initial plugin load.
     data: Option<PluginData>,
+    producer: Option<Mutex<UnsafeCell<Producer>>>,
 }
 
 impl std::fmt::Debug for GeyserGrpcPlugin {
@@ -70,7 +76,8 @@ pub struct PluginConfig {
     pub slot_update_buffer_size: usize,
     pub block_update_buffer_size: usize,
     pub transaction_update_buffer_size: usize,
-    pub skip_startup_stream: Option<bool>
+    pub skip_startup_stream: Option<bool>,
+    pub kafka_address: Option<String>,
 }
 
 impl GeyserPlugin for GeyserGrpcPlugin {
@@ -104,6 +111,17 @@ impl GeyserPlugin for GeyserGrpcPlugin {
                 .map_err(|err| GeyserPluginError::ConfigFileReadError {
                     msg: format!("Error parsing the bind_address {err:?}"),
                 })?;
+
+        if let Some(kafka_address) = config.kafka_address {
+            let producer_result = Producer::from_hosts(vec![kafka_address])
+                .with_ack_timeout(Duration::from_secs(1))
+                .with_required_acks(RequiredAcks::One)
+                .create();
+
+            if let Ok(producer) = producer_result {
+                let _ = self.producer.insert(Mutex::from(UnsafeCell::from(producer)));
+            }
+        }
 
         let highest_write_slot = Arc::new(AtomicU64::new(0));
         let (account_update_sender, account_update_rx) = bounded(config.account_update_buffer_size);
@@ -143,7 +161,7 @@ impl GeyserPlugin for GeyserGrpcPlugin {
             highest_write_slot,
             is_startup_completed: AtomicBool::new(false),
             // don't skip startup to keep backwards compatability
-            ignore_startup_updates: config.skip_startup_stream.unwrap_or(false)
+            ignore_startup_updates: config.skip_startup_stream.unwrap_or(false),
         });
         info!("plugin data initialized");
 
@@ -161,7 +179,11 @@ impl GeyserPlugin for GeyserGrpcPlugin {
     }
 
     fn notify_end_of_startup(&self) -> PluginResult<()> {
-        self.data.as_ref().unwrap().is_startup_completed.store(true, Ordering::Relaxed);
+        self.data
+            .as_ref()
+            .unwrap()
+            .is_startup_completed
+            .store(true, Ordering::Relaxed);
         Ok(())
     }
 
@@ -328,36 +350,56 @@ impl GeyserPlugin for GeyserGrpcPlugin {
         }
 
         let transaction_update = match transaction {
-            ReplicaTransactionInfoVersions::V0_0_1(tx) if !tx.is_vote => Some(TimestampedTransactionUpdate {
-                ts: Some(prost_types::Timestamp::from(SystemTime::now())),
-                transaction: Some(TransactionUpdate {
-                    slot,
-                    signature: tx.signature.to_string(),
-                    is_vote: tx.is_vote,
-                    tx_idx: u64::MAX,
-                    tx: Some(ConfirmedTransaction {
-                        transaction: Some(tx.transaction.to_versioned_transaction().into()),
-                        meta: Some(tx.transaction_status_meta.clone().into()),
+            ReplicaTransactionInfoVersions::V0_0_1(tx) if !tx.is_vote => {
+                Some(TimestampedTransactionUpdate {
+                    ts: Some(prost_types::Timestamp::from(SystemTime::now())),
+                    transaction: Some(TransactionUpdate {
+                        slot,
+                        signature: tx.signature.to_string(),
+                        is_vote: tx.is_vote,
+                        tx_idx: u64::MAX,
+                        tx: Some(ConfirmedTransaction {
+                            transaction: Some(tx.transaction.to_versioned_transaction().into()),
+                            meta: Some(tx.transaction_status_meta.clone().into()),
+                        }),
                     }),
-                }),
-            }),
-            ReplicaTransactionInfoVersions::V0_0_2(tx) if !tx.is_vote => Some(TimestampedTransactionUpdate {
-                ts: Some(prost_types::Timestamp::from(SystemTime::now())),
-                transaction: Some(TransactionUpdate {
-                    slot,
-                    signature: tx.signature.to_string(),
-                    is_vote: tx.is_vote,
-                    tx_idx: tx.index as u64,
-                    tx: Some(ConfirmedTransaction {
-                        transaction: Some(tx.transaction.to_versioned_transaction().into()),
-                        meta: Some(tx.transaction_status_meta.clone().into()),
+                })
+            }
+            ReplicaTransactionInfoVersions::V0_0_2(tx) if !tx.is_vote => {
+                Some(TimestampedTransactionUpdate {
+                    ts: Some(prost_types::Timestamp::from(SystemTime::now())),
+                    transaction: Some(TransactionUpdate {
+                        slot,
+                        signature: tx.signature.to_string(),
+                        is_vote: tx.is_vote,
+                        tx_idx: tx.index as u64,
+                        tx: Some(ConfirmedTransaction {
+                            transaction: Some(tx.transaction.to_versioned_transaction().into()),
+                            meta: Some(tx.transaction_status_meta.clone().into()),
+                        }),
                     }),
-                }),
-            }),
+                })
+            }
             _ => None,
         };
 
         if let Some(transaction_update) = transaction_update {
+            let mut buf = Vec::new();
+            transaction_update.encode(&mut buf).unwrap();
+
+            if let Some(producer) = &self.producer {
+
+                let lock = producer.lock().unwrap();
+                unsafe {
+                    let producer = lock.get().as_mut().unwrap();
+
+                    producer
+                        .send(&Record::from_value("geyser-to-workers", buf))
+                        .unwrap();
+                }
+                drop(lock);
+            }
+
             match data.transaction_update_sender.try_send(transaction_update) {
                 Ok(_) => Ok(()),
                 Err(TrySendError::Full(_)) => {

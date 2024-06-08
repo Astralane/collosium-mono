@@ -31,3 +31,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 actix-web = { workspace = true }
 uuid = { version = "1.3.0", features = ["v4"] }
+flate2 = "1.0"
+rand = "0.8.5"
+borsh = { workspace = true }

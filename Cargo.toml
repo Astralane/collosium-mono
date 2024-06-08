@@ -35,15 +35,15 @@ rand = "0.8.5"
 rayon = "1.7.0"
 rustls = { version = "0.20", features = ["dangerous_configuration"] }
 sha2 = "0.10.6"
-solana-client = "=1.17.31"
-solana-gossip = "=1.17.31"
-solana-measure = "=1.17.31"
-solana-perf = "=1.17.31"
-solana-program = "=1.17.31"
-solana-rayon-threadlimit = "=1.17.31"
-solana-runtime = "=1.17.31"
-solana-sdk = "=1.17.31"
-solana-streamer = "=1.17.31"
+solana-client = "=1.18.1"
+solana-gossip = "=1.18.1"
+solana-measure = "=1.18.1"
+solana-perf = "=1.18.1"
+solana-program = "=1.18.1"
+solana-rayon-threadlimit = "=1.18.1"
+solana-runtime = "=1.18.1"
+solana-sdk = "=1.18.1"
+solana-streamer = "=1.18.1"
 thiserror = "1.0.40"
 tokio = { version = "1.29.1", features = ["full"] }
 tokio-stream = "0.1.12"
@@ -52,11 +52,12 @@ tonic-build = "0.10.2"
 tower = { version = "0.4.1", features = ["limit"] }
 reqwest = "0.12.4"
 sqlx = { version = "0.6", features = [ "runtime-tokio-native-tls", "postgres", "uuid" ] }
-futures = "0.1.31"
+futures = "0.3"
 base64 = "0.12.3"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"
 actix-web = "4"
+borsh = { version = "=1.2.1", features = ["derive"] }
 
 [profile.release]
 # thin has minimal overhead vs none (default): https://blog.llvm.org/2016/06/thinlto-scalable-and-incremental-lto.html

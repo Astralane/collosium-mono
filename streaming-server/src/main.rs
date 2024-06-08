@@ -18,6 +18,7 @@ mod client;
 mod server;
 mod ldb;
 mod index;
+mod idl;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -33,6 +34,9 @@ struct Args {
 
     #[arg(long, env, default_value = "http://localhost:11226")]
     relayer_url: String,
+
+    #[arg(long, env, default_value = "http://localhost:8899")]
+    rpc_url: String,
 
     #[arg(long, env, default_value = "localhost:5432")]
     db_address: String,
@@ -114,30 +118,9 @@ async fn main() {
 
     let db_pool = Arc::from(Mutex::from(db_pool));
 
-
     let index_configs = Arc::new(Mutex::new(vec![]));
-    /* example:
-    vec![IndexConfiguration {
-        name: String::from("test"),
-        table_name: String::from("mich_test"),
-        columns: vec![String::from("block_slot"), String::from("program_id")],
-        filters: vec![
-            IndexFilterEntity {
-                column: String::from("block_slot"),
-                predicates: vec![IndexFilterPredicate::GT {value: String::from("111792")}]
-            },
-            IndexFilterEntity {
-                column: String::from("program_id"),
-                predicates: vec![IndexFilterPredicate::IN {value: vec![String::from("11111111111111111111111111111111")]}]
-            },
-            IndexFilterEntity {
-                column: String::from("account_arguments"),
-                predicates: vec![IndexFilterPredicate::CONTAINS {value: String::from("72i21TqCQw6oTGULXHNmuHkyrzyjbsGVdem1f4mUnAMJ")}]
-            },
-        ]
-    }]
-     */
-    let index_http_server = Indexer::new(db_pool.clone(), index_configs.clone()).await;
+
+    let index_http_server = Indexer::new(db_pool.clone(), index_configs.clone(), &args.rpc_url).await;
 
     tokio::spawn(async move {
         index_http_server.start().await;

@@ -51,6 +51,13 @@ pub struct IndexConfiguration {
     pub filters: Vec<IndexFilterEntity>,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct IndexConfigurationDTO {
+    pub name: String,
+    pub columns: Vec<String>,
+    pub filters: Vec<IndexFilterEntity>,
+}
+
 /* example:
     vec![IndexConfiguration {
         name: String::from("test"),

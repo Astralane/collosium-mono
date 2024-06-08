@@ -44,23 +44,26 @@ impl IDLDownloader {
             format!("failed to parse program_pubkey: {e}")
         })?;
         let base = Pubkey::find_program_address(&[], &program_pubkey).0;
+
         let anchor_pubkey = Pubkey::create_with_seed(&base, ANCHOR_SEED, &program_pubkey).map_err(|e| {
             format!("failed to create anchor_pubkey: {e}")
         })?;
-        println!("loading pubkey {anchor_pubkey}");
 
         let account_data =  self.rpc_client.get_account(&anchor_pubkey).await.map_err(|e| {
             format!("failed to get account_data from rpc: {e}")
         })?.data;
 
-        let trimmed_end = account_data.iter().rposition(|&x| x != 0).map_or(0, |x| x + 1);
-        let decoded_idl = from_slice::<IdlProgramAccount>(
-            &account_data[ANCHOR_ACCOUNT_DISCRIMINATOR_LENGTH..trimmed_end]
-        ).map_err(|e| {
-            format!("failed to get decode idl blob: {e}")
+        let data_len_start = ANCHOR_ACCOUNT_DISCRIMINATOR_LENGTH + std::mem::size_of::<Pubkey>();
+        let data_len_end = data_len_start + 4;
+        let data_len = from_slice::<u32>(&account_data[data_len_start..data_len_end]).map_err(|e| {
+            format!("failed to get decode idl data len blob: {e}")
+        })? as usize;
+
+        let data = from_slice::<Vec<u8>>(&account_data[data_len_start..data_len_end + data_len]).map_err(|e| {
+            format!("failed to get decode idl data blob: {e}")
         })?;
 
-        let mut deflated_idl = ZlibDecoder::new(&decoded_idl.data[..]);
+        let mut deflated_idl = ZlibDecoder::new(&data[..]);
 
         let mut idl_string = String::new();
         deflated_idl.read_to_string(&mut idl_string).map_err(|e| {

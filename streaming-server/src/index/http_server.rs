@@ -17,7 +17,7 @@ use crate::index::parser::IndexFilterPredicate::EQ;
 
 use crate::ldb::solana_instructions;
 
-use super::parser::{IndexConfiguration, IndexFilterPredicate};
+use super::parser::{IndexConfiguration, IndexConfigurationDTO, IndexFilterPredicate};
 
 #[derive(Clone)]
 struct DataWrapper {
@@ -91,15 +91,25 @@ impl IndexerHttpServer {
     }
 
     async fn create_new_index(
-        mut raw_data: web::Json<IndexConfiguration>,
+        mut raw_data: web::Json<IndexConfigurationDTO>,
         data: web::Data<DataWrapper>,
     ) -> std::result::Result<HttpResponse, Error> {
-        let json_config = serde_json::to_string(&raw_data).unwrap();
-        let mut connection = data.db.lock().await.acquire().await.unwrap();
+
+
 
         let access_key = Uuid::new_v4();
         let access_key_underscored = access_key.to_string().replace("-", "_");
-        raw_data.table_name = format!("index_{access_key_underscored}");
+
+        let raw_data = IndexConfiguration {
+            name: std::mem::replace(&mut raw_data.name, String::new()),
+            table_name: format!("index_{access_key_underscored}"),
+            columns: std::mem::replace(&mut raw_data.columns, vec![]),
+            filters: std::mem::replace(&mut raw_data.filters, vec![]),
+        };
+        let json_config = serde_json::to_string(&raw_data).unwrap();
+
+        let mut connection = data.db.lock().await.acquire().await.unwrap();
+        // raw_data.table_name = format!("index_{access_key_underscored}");
         let res = sqlx::query(
             "insert into index_configuration (access_key, table_name, json_config) \
                     values ($1, $2, $3)",
@@ -131,20 +141,20 @@ impl IndexerHttpServer {
             return Ok(HttpResponse::InternalServerError().finish())
         }
 
-        maybe_store_id(data.idl_downloader.clone(), &json_config).await.unwrap();
+        maybe_store_idl(data.idl_downloader.clone(), &json_config).await.unwrap();
 
         let mut configs = data.index_configs.lock().await;
-        configs.push(raw_data.0);
+        configs.push(raw_data);
 
         Ok(HttpResponse::Ok().json(format!("{}", access_key)))
     }
 }
 
-async fn maybe_store_id(idl_downloader: Arc<Mutex<IDLDownloader>>, json_config: &str) -> Result<()> {
+async fn maybe_store_idl(idl_downloader: Arc<Mutex<IDLDownloader>>, json_config: &str) -> Result<()> {
     let idl_downloader = idl_downloader.lock().await;
     let config: IndexConfiguration = serde_json::from_str(json_config).unwrap();
 
-    if let Some(programPredicate) = config.filters.iter().find(|filter| { filter.column == "program" }) {
+    if let Some(programPredicate) = config.filters.iter().find(|filter| { filter.column == "program_id" }) {
         let eq_predicate = programPredicate.predicates.iter().find(|index_predicate| {
             match index_predicate {
                 EQ { .. } => true,
@@ -157,8 +167,7 @@ async fn maybe_store_id(idl_downloader: Arc<Mutex<IDLDownloader>>, json_config: 
             }
         });
         if let Some(eq_predicate) = eq_predicate {
-            let program_pubkey = eq_predicate.as_str().unwrap();
-            println!("{program_pubkey}");
+            let program_pubkey = eq_predicate.as_array().unwrap()[0].as_str().unwrap();
 
             if let Ok(program_idl) = idl_downloader.download_idl(program_pubkey).await {
                 idl_downloader.store_idl(program_pubkey, &program_idl).await.unwrap();

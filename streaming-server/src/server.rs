@@ -103,7 +103,7 @@ impl StreamingServerImpl {
                 for index_config in index_configs.iter() {
                     let is_match = match_index_packet(&instruction, index_config).await;
                     if is_match {
-                        self.store_index_instruction(&instruction, &index_config).await.expect("failed to store instruction");
+                        //self.store_index_instruction(&instruction, &index_config).await.expect("failed to store instruction");
                     }
 
                 }

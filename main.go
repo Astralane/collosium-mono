@@ -1,14 +1,16 @@
 package main
 
 import (
+	"log"
+	"sync"
+	"time"
+
 	"github.com/astraline/astraline-filtering-service/pkg/database"
 	"github.com/astraline/astraline-filtering-service/pkg/index_config"
 	"github.com/astraline/astraline-filtering-service/pkg/job"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/segmentio/kafka-go"
-	"log"
-	"sync"
 )
 
 // TODO: start main job to read config from DB
@@ -23,6 +25,7 @@ type Config struct {
 	kafkaAddr    string
 	kafkaTopic   string
 	kafkaGroupId string
+	kafkaMaxWait time.Duration
 }
 
 const s = `{
@@ -133,14 +136,16 @@ func main() {
 		kafkaAddr:    "localhost:9092",
 		kafkaTopic:   "geyser-to-workers",
 		kafkaGroupId: "geyser-to-workers",
+		kafkaMaxWait: time.Millisecond * 1,
 	}
 
 	kafkaCfg := kafka.ReaderConfig{
 		Brokers:  []string{cfg.kafkaAddr},
 		Topic:    cfg.kafkaTopic,
 		GroupID:  cfg.kafkaGroupId,
-		MinBytes: 10e3, // 10KB
-		MaxBytes: 10e6, // 10MB
+		MinBytes: 1,    // 10B
+		MaxBytes: 10e3, // 10KB
+		MaxWait:  cfg.kafkaMaxWait,
 	}
 
 	// declare err variable here so DBConn won't be shadowed

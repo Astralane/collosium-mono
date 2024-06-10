@@ -109,7 +109,10 @@ func loadIDL(programPubkey string) (map[string]interface{}, error) {
 	var data []byte
 	err := database.Conn.Get(&data, getIdlQuery, programPubkey)
 	if err != nil {
-		panic(err)
+		log.Println("couldn't get idl from db")
+		return nil, err
+		// TODO: fix it
+		// panic(err)
 	}
 	var dataString string
 	err = json.Unmarshal(data, &dataString)
@@ -208,37 +211,39 @@ func constructQuery(indexConfig index_config.IndexConfiguration) string {
 
 func executeQuery(query string, data InstructionData, columns []string) {
 	log.Printf("trying to save data to index, query: %s\n", query)
-	//params := make([]interface{}, 0, len(columns))
-	//paramsMap := map[string]interface{}{}
-	//for _, c := range columns {
-	//	switch c {
-	//	case "block_slot":
-	//		paramsMap[c] = data.slot
-	//	case "signature":
-	//		paramsMap[c] = data.sig
-	//	case "tx_id":
-	//		paramsMap[c] = data.txIdx
-	//	case "account_keys":
-	//		paramsMap[c] = data.accountKeys
-	//	case "program_id":
-	//		paramsMap[c] = data.programId
-	//	case "is_inner":
-	//		paramsMap[c] = data.isInner
-	//	case "accounts":
-	//		paramsMap[c] = data.accounts
-	//	case "data":
-	//		paramsMap[c] = data.data
-	//	case "tx_success":
-	//		paramsMap[c] = data.txSuccess
-	//	case "tx_signer":
-	//		paramsMap[c] = data.txSigner
-	//	default:
-	//		// TODO: add idl return handling
-	//	}
-	//}
-	_, err := database.Conn.Exec(query, data.slot, data.sig, data.programId, base58.Encode(data.data), data.txSigner, data.txSuccess)
+	params := make([]interface{}, 0, len(columns))
+	// paramsMap := map[string]interface{}{}
+	for _, c := range columns {
+		switch c {
+		case "block_slot":
+			params = append(params, data.slot)
+		case "signature":
+			params = append(params, data.sig)
+		case "tx_id":
+			params = append(params, data.txIdx)
+		case "account_keys":
+			params = append(params, data.accountKeys)
+		case "program_id":
+			params = append(params, data.programId)
+		case "is_inner":
+			params = append(params, data.isInner)
+		case "accounts":
+			params = append(params, data.accounts)
+		case "data":
+			params = append(params, base58.Encode(data.data))
+		case "tx_success":
+			params = append(params, data.txSuccess)
+		case "tx_signer":
+			params = append(params, data.txSigner)
+		default:
+			// TODO: add idl return handling
+		}
+	}
+	// _, err := database.Conn.Exec(query, data.slot, data.txIdx, data.programId, base58.Encode(data.data), data.txSigner, data.txSuccess)
+	_, err := database.Conn.Exec(query, params...)
 	if err != nil {
 		log.Printf("ERROR couldn't save data to index. Err: %s\n", err)
+		log.Printf("DATA: %+v", data)
 		return
 	}
 	log.Println("saved data to index db")

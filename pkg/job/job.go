@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	kafkaReadTimeout = 10
+	kafkaReadTimeout = 1
 )
 
 type job struct {
@@ -28,6 +28,7 @@ func (w *job) Start(q chan bool, wg *sync.WaitGroup) {
 
 	for {
 		reader := kafka.NewReader(w.kafkaCfg)
+		log.Println("Connecting to kafka")
 		err := w.run(q, reader)
 		reader.Close()
 		if err == nil {
@@ -62,7 +63,7 @@ func (w *job) readTx(reader *kafka.Reader) error {
 	var err error
 	done := make(chan kafka.Message)
 	go func(done chan kafka.Message) {
-		msg, e := reader.ReadMessage(ctxTimeout)
+		msg, e := reader.FetchMessage(ctxTimeout)
 		err = e
 		done <- msg
 	}(done)
@@ -70,6 +71,7 @@ func (w *job) readTx(reader *kafka.Reader) error {
 	select {
 	case msg := <-done:
 		cancel()
+		time.Sleep(10 * time.Second)
 		if err != nil {
 			return err
 		}

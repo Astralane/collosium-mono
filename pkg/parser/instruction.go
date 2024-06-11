@@ -20,6 +20,8 @@ import (
 
 const getIdlQuery = "select idl from program_idl where program_pubkey = $1"
 
+const dbDefault = ""
+
 func processInstruction(instData InstructionData) {
 	// TODO: filter data
 	// TODO: populate db with that data
@@ -213,6 +215,17 @@ func executeQuery(query string, data InstructionData, columns []string) {
 	log.Printf("trying to save data to index, query: %s\n", query)
 	params := make([]interface{}, 0, len(columns))
 	// paramsMap := map[string]interface{}{}
+	idl, err := loadIDL(data.programId)
+	if err != nil {
+		log.Printf("idl couldn't be loaded, err:%s\n", err)
+		idl = nil
+	}
+	parsedData, err := getInstruction(data.data, idl)
+	if err != nil {
+		log.Printf("parsedData couldn't be loaded, err:%s\n", err)
+		parsedData = nil
+	}
+
 	for _, c := range columns {
 		switch c {
 		case "block_slot":
@@ -235,12 +248,14 @@ func executeQuery(query string, data InstructionData, columns []string) {
 			params = append(params, data.txSuccess)
 		case "tx_signer":
 			params = append(params, data.txSigner)
+		case "instruction_name":
+			params = append(params, getInstructionName(parsedData))
 		default:
-			// TODO: add idl return handling
+			params = append(params, matchColumnWithPattern(c, data, parsedData, idl))
 		}
 	}
 	// _, err := database.Conn.Exec(query, data.slot, data.txIdx, data.programId, base58.Encode(data.data), data.txSigner, data.txSuccess)
-	_, err := database.Conn.Exec(query, params...)
+	_, err = database.Conn.Exec(query, params...)
 	if err != nil {
 		log.Printf("ERROR couldn't save data to index. Err: %s\n", err)
 		log.Printf("DATA: %+v", data)
@@ -249,7 +264,52 @@ func executeQuery(query string, data InstructionData, columns []string) {
 	log.Println("saved data to index db")
 }
 
-func getDataByColumnName(data InstructionData, cName string) any {
+func getInstructionName(data map[string]any) any {
+	if data == nil {
+		return dbDefault
+	}
+	return data["name"]
+}
 
+func matchColumnWithPattern(c string,
+	data InstructionData,
+	parsedData map[string]any,
+	idl map[string]any) any {
+	if parsedData == nil || idl == nil {
+		return dbDefault
+	}
+
+	switch getPrefix(c) {
+	case "account_":
+		return getAccountPubKey(strings.TrimPrefix(c, "account_"), parsedData, data.accounts)
+	default:
+		return dbDefault
+	}
+}
+
+func getAccountPubKey(accountName string, pd map[string]any, rcvdAccounts []string) any {
+	accounts := pd["accounts"].([]interface{})
+	accountIndex := -1
+	for i, account := range accounts {
+		accountMap := account.(map[string]interface{})
+		log.Printf("trying to convert name, name: %+v\n", accountMap["name"])
+		log.Printf("with account name: %s\n", accountName)
+		accountParsed := accountMap["name"].(string)
+		if strings.ToLower(accountName) == strings.ToLower(accountParsed) {
+			accountIndex = i
+			break
+		}
+	}
+
+	if accountIndex >= 0 {
+		return rcvdAccounts[accountIndex]
+	}
+	return dbDefault
+}
+
+func getPrefix(c string) string {
+	if strings.HasPrefix(c, "account_") {
+		return "account_"
+	}
 	return ""
 }

@@ -63,7 +63,7 @@ func (w *job) readTx(reader *kafka.Reader) error {
 	var err error
 	done := make(chan kafka.Message)
 	go func(done chan kafka.Message) {
-		msg, e := reader.FetchMessage(ctxTimeout)
+		msg, e := reader.ReadMessage(ctxTimeout)
 		err = e
 		done <- msg
 	}(done)
@@ -71,7 +71,6 @@ func (w *job) readTx(reader *kafka.Reader) error {
 	select {
 	case msg := <-done:
 		cancel()
-		time.Sleep(10 * time.Second)
 		if err != nil {
 			return err
 		}

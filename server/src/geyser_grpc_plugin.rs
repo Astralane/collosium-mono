@@ -54,6 +54,8 @@ pub struct PluginData {
 
     is_startup_completed: AtomicBool,
     ignore_startup_updates: bool,
+
+    throttling_factor: Arc<Mutex<u32>>,
 }
 #[derive(Default)]
 pub struct GeyserGrpcPlugin {
@@ -78,6 +80,7 @@ pub struct PluginConfig {
     pub transaction_update_buffer_size: usize,
     pub skip_startup_stream: Option<bool>,
     pub kafka_address: Option<String>,
+    pub throttling_factor: u32,
 }
 
 impl GeyserPlugin for GeyserGrpcPlugin {
@@ -138,6 +141,7 @@ impl GeyserPlugin for GeyserGrpcPlugin {
             block_update_receiver,
             transaction_update_receiver,
             highest_write_slot.clone(),
+            Arc::new(Mutex::new(config.throttling_factor)),
         );
         let svc = GeyserServer::new(svc);
 
@@ -162,6 +166,7 @@ impl GeyserPlugin for GeyserGrpcPlugin {
             is_startup_completed: AtomicBool::new(false),
             // don't skip startup to keep backwards compatability
             ignore_startup_updates: config.skip_startup_stream.unwrap_or(false),
+            throttling_factor: Arc::new(Mutex::new(config.throttling_factor)),
         });
         info!("plugin data initialized");
 
@@ -349,6 +354,30 @@ impl GeyserPlugin for GeyserGrpcPlugin {
             return Ok(());
         }
 
+        let throttling_factor_value = {
+            let throttling_factor = data.throttling_factor.lock().unwrap();
+            *throttling_factor
+        };
+
+        println!("throttling_factor_value {}", throttling_factor_value);
+
+        let tx_signature_bytes = match &transaction {
+            ReplicaTransactionInfoVersions::V0_0_1(tx) => tx.signature.as_ref(),
+            ReplicaTransactionInfoVersions::V0_0_2(tx) => tx.signature.as_ref(),
+            _ => return Ok(()),
+        };
+
+        if tx_signature_bytes.len() < 2 {
+            return Ok(());
+        }
+
+        let last_two_bytes = &tx_signature_bytes[tx_signature_bytes.len() - 2..];
+        let last_two_bytes_value = u16::from_be_bytes([last_two_bytes[0], last_two_bytes[1]]);
+
+        if last_two_bytes_value >= throttling_factor_value as u16 {
+            return Ok(());
+        }
+        
         let transaction_update = match transaction {
             ReplicaTransactionInfoVersions::V0_0_1(tx) if !tx.is_vote => {
                 Some(TimestampedTransactionUpdate {

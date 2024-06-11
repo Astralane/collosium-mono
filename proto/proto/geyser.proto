@@ -157,6 +157,18 @@ message GetHeartbeatIntervalResponse {
   uint64 heartbeat_interval_ms = 1;
 }
 
+message GetThrottlingFactorResponse {
+  uint32 throttling_factor = 1;
+}
+
+message SetThrottlingFactorRequest {
+  uint32 throttling_factor = 1;
+}
+
+message SetThrottlingFactorResponse {
+  bool success = 1;
+}
+
 // The following __must__ be assumed:
 //    - Clients may receive data for slots out of order.
 //    - Clients may receive account updates for a given slot out of order.
@@ -186,4 +198,7 @@ service Geyser {
 
   // Subscribes to block updates.
   rpc SubscribeBlockUpdates(SubscribeBlockUpdatesRequest) returns (stream TimestampedBlockUpdate) {}
+
+  rpc GetThrottlingFactor(EmptyRequest) returns (GetThrottlingFactorResponse) {}
+  rpc SetThrottlingFactor(SetThrottlingFactorRequest) returns (SetThrottlingFactorResponse) {}
 }

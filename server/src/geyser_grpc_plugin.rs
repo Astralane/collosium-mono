@@ -15,7 +15,7 @@ use std::{
 };
 
 use bs58;
-use crossbeam_channel::{bounded, Sender, TrySendError};
+use crossbeam_channel::{bounded, unbounded, Sender, TrySendError};
 use jito_geyser_protos::solana::{
     geyser::{
         geyser_server::GeyserServer, AccountUpdate, BlockUpdate, SlotUpdate, SlotUpdateStatus,
@@ -56,6 +56,7 @@ pub struct PluginData {
     ignore_startup_updates: bool,
 
     throttling_factor: Arc<Mutex<u32>>,
+    throttling_factor_tx: Sender<u32>,
 }
 #[derive(Default)]
 pub struct GeyserGrpcPlugin {
@@ -134,6 +135,9 @@ impl GeyserPlugin for GeyserGrpcPlugin {
         let (transaction_update_sender, transaction_update_receiver) =
             bounded(config.transaction_update_buffer_size);
 
+        let throttling_factor = Arc::new(Mutex::new(config.throttling_factor));
+        let (throttling_factor_tx, throttling_factor_rx) = unbounded::<u32>();
+
         let svc = GeyserService::new(
             config.geyser_service_config,
             account_update_rx,
@@ -141,7 +145,9 @@ impl GeyserPlugin for GeyserGrpcPlugin {
             block_update_receiver,
             transaction_update_receiver,
             highest_write_slot.clone(),
-            Arc::new(Mutex::new(config.throttling_factor)),
+            throttling_factor.clone(),
+            throttling_factor_tx.clone(),
+            throttling_factor_rx.clone(),
         );
         let svc = GeyserServer::new(svc);
 
@@ -166,7 +172,8 @@ impl GeyserPlugin for GeyserGrpcPlugin {
             is_startup_completed: AtomicBool::new(false),
             // don't skip startup to keep backwards compatability
             ignore_startup_updates: config.skip_startup_stream.unwrap_or(false),
-            throttling_factor: Arc::new(Mutex::new(config.throttling_factor)),
+            throttling_factor,
+            throttling_factor_tx,
         });
         info!("plugin data initialized");
 
@@ -358,8 +365,6 @@ impl GeyserPlugin for GeyserGrpcPlugin {
             let throttling_factor = data.throttling_factor.lock().unwrap();
             *throttling_factor
         };
-
-        println!("throttling_factor_value {}", throttling_factor_value);
 
         let tx_signature_bytes = match &transaction {
             ReplicaTransactionInfoVersions::V0_0_1(tx) => tx.signature.as_ref(),

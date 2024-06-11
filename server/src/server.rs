@@ -304,6 +304,8 @@ pub struct GeyserService {
     t_hdl: JoinHandle<()>,
 
     throttling_factor: Arc<Mutex<u32>>,
+    throttling_factor_tx: Sender<u32>,
+    throttling_factor_rx: Receiver<u32>,
 }
 
 impl GeyserService {
@@ -320,6 +322,8 @@ impl GeyserService {
         // This value is maintained in the upstream context.
         highest_write_slot: Arc<AtomicU64>,
         throttling_factor: Arc<Mutex<u32>>,
+        throttling_factor_tx: Sender<u32>,
+        throttling_factor_rx: Receiver<u32>,
     ) -> Self {
         let (subscription_added_tx, subscription_added_rx) = unbounded();
         let (subscription_closed_tx, subscription_closed_rx) = unbounded();
@@ -333,6 +337,8 @@ impl GeyserService {
             subscription_added_rx,
             subscription_closed_rx,
             heartbeat_tick,
+            throttling_factor_rx.clone(),
+            throttling_factor.clone(),
         );
 
         Self {
@@ -344,6 +350,8 @@ impl GeyserService {
             },
             t_hdl,
             throttling_factor,
+            throttling_factor_tx,
+            throttling_factor_rx,
         }
     }
 
@@ -363,6 +371,8 @@ impl GeyserService {
         subscription_added_rx: Receiver<SubscriptionAddedEvent>,
         subscription_closed_rx: Receiver<SubscriptionClosedEvent>,
         heartbeat_tick: Receiver<Instant>,
+        throttling_factor_rx: Receiver<u32>,
+        throttling_factor: Arc<Mutex<u32>>,
     ) -> JoinHandle<()> {
         Builder::new()
             .name("geyser-service-event-loop".to_string())
@@ -450,6 +460,19 @@ impl GeyserService {
                                 Ok(failed_subscription_ids) => {
                                     Self::drop_subscriptions(&failed_subscription_ids, &mut transaction_update_subscriptions);
                                 },
+                            }
+                        },
+                        recv(throttling_factor_rx) -> maybe_new_throttling_factor => {
+                            debug!("received new throttling factor");
+                            match maybe_new_throttling_factor {
+                                Ok(new_throttling_factor) => {
+                                    let mut throttling_factor = throttling_factor.lock().unwrap();
+                                    *throttling_factor = new_throttling_factor;
+                                    println!("updated throttling factor to {}", new_throttling_factor);
+                                }
+                                Err(e) => {
+                                    error!("error receiving new throttling factor: {}", e);
+                                }
                             }
                         },
                     }
@@ -748,8 +771,7 @@ impl GeyserService {
     }
 
     pub fn set_throttling_factor(&self, value: u32) {
-        let mut throttling_factor = self.throttling_factor.lock().unwrap();
-        *throttling_factor = value;
+        self.throttling_factor_tx.send(value).unwrap();
     }
 }
 
@@ -1034,6 +1056,7 @@ impl Geyser for GeyserService {
         request: Request<SetThrottlingFactorRequest>,
     ) -> Result<Response<SetThrottlingFactorResponse>, Status> {
         let throttling_factor = request.into_inner().throttling_factor;
+        println!("Received new value {}", throttling_factor);
         self.set_throttling_factor(throttling_factor);
         Ok(Response::new(SetThrottlingFactorResponse { success: true }))
     } 

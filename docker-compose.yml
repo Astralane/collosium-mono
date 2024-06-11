@@ -26,6 +26,9 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR:
+        # by default it is checked every 300'000 ms = 5 mins
+        # so at max, event can be stored for 2h 4 min 59 sec
+      KAFKA_LOG_RETENTION_MS: 7200000
     networks:
       - kafka-net
 networks:

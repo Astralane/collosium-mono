@@ -1,5 +1,5 @@
 {
-  "libpath": "/Users/artemshkonda/astraline-geyser-plugin/target/release/libgeyser_grpc_plugin_server.dylib",
+  "libpath": "/Users/mich/projects/solana/a/astralane-geyser-plugin/target/release/libgeyser_grpc_plugin_server.dylib",
   "bind_address": "0.0.0.0:10000",
   "account_update_buffer_size": 100000,
   "slot_update_buffer_size": 100000,

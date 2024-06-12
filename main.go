@@ -13,9 +13,6 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// TODO: start main job to read config from DB
-// TODO: filter instructions and put to DB
-
 // TODO: add ctrl+c hook to safely stop all jobs
 
 type Config struct {

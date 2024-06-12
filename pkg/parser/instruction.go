@@ -23,9 +23,6 @@ const getIdlQuery = "select idl from program_idl where program_pubkey = $1"
 const dbDefault = ""
 
 func processInstruction(instData InstructionData) {
-	// TODO: filter data
-	// TODO: populate db with that data
-
 	println("processing instruction of transaction " + instData.sig + " and pubkey: " + instData.programId)
 	indexConfigs := index_config.GlobalIndexConfig.Get()
 	for _, indexConfig := range indexConfigs {

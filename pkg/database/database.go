@@ -17,9 +17,10 @@ type DBConfig struct {
 	SslMode  string
 	Password string
 	Host     string
+	Port     string
 }
 
 func (d *DBConfig) String() string {
-	return fmt.Sprintf("user=%s dbname=%s sslmode=%s password=%s host=%s",
-		d.User, d.DBName, d.SslMode, d.Password, d.Host)
+	return fmt.Sprintf("user=%s dbname=%s sslmode=%s password=%s host=%s port=%s",
+		d.User, d.DBName, d.SslMode, d.Password, d.Host, d.Port)
 }

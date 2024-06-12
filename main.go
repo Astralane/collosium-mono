@@ -36,6 +36,7 @@ func init() {
 	flag.StringVar(&dbConfig.User, "db-username", "postgres", "postgres db username")
 	flag.StringVar(&dbConfig.Password, "db-password", "postgres", "postgres db password")
 	flag.StringVar(&dbConfig.Host, "db-host", "localhost", "postgres db host")
+	flag.StringVar(&dbConfig.Port, "db-port", "5432", "postgres db port")
 	flag.StringVar(&dbConfig.SslMode, "db-sslmode", "disable", "postgres db ssl mode")
 
 	cfg = Config{
@@ -49,7 +50,7 @@ func init() {
 
 	flag.Parse()
 
-	// at that poing all argumets are parsed
+	// at that point all argumets are parsed
 	// so we can put all structures to master struct (Config)
 	// all fields in flag.<Type>Var() are taken by reference so
 	// we should pass them to cfg (Config) either by reference or after flag.Parse()
@@ -57,21 +58,6 @@ func init() {
 }
 
 func main() {
-	//var m interface{}
-	//err := json.Unmarshal([]byte(s), &m)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//var k = m.(map[string]interface{})
-	//var i = k["instructions"]
-	//var ii = i.([]interface{})
-	//for _, i1 := range ii {
-	//
-	//	var iii = i1.(map[string]interface{})
-	//	fmt.Println(iii)
-	//}
-
 	wg := sync.WaitGroup{}
 
 	kafkaCfg := kafka.ReaderConfig{
@@ -87,16 +73,17 @@ func main() {
 	var err error
 	database.Conn, err = sqlx.Connect(cfg.dbDriver, cfg.dbConfig.String())
 	if err != nil {
-		log.Println(cfg.dbConfig.String())
+		log.Printf("Failed to connect to db with config: %s", cfg.dbConfig.String())
 		log.Fatal(err)
 	}
 	defer database.Conn.Close()
 
 	// test db connection
 	if err := database.Conn.Ping(); err != nil {
+		log.Printf("Failed to ping db at %s:%s", cfg.dbConfig.Host, cfg.dbConfig.Port)
 		log.Fatal(err)
 	} else {
-		log.Println("Successfully Connected")
+		log.Printf("Successfully connected to db at %s:%s", cfg.dbConfig.Host, cfg.dbConfig.Port)
 	}
 
 	wg.Add(2)

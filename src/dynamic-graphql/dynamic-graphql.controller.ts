@@ -7,12 +7,15 @@ import {
   Next,
   Logger,
   Body,
+  UseGuards,
 } from '@nestjs/common';
 import { DynamicGraphqlService } from './dynamic-graphql.service';
 import { ApolloServer } from 'apollo-server-express';
 import { Request, Response, NextFunction } from 'express';
+import { AuthGuard } from 'src/auth/auth.guard';
 
 @Controller('api/v1/dataset')
+@UseGuards(AuthGuard)
 export class DynamicGraphqlController {
   private readonly logger = new Logger(DynamicGraphqlController.name);
 
@@ -35,6 +38,14 @@ export class DynamicGraphqlController {
       let limit =
         limitMatch && limitMatch[1] ? parseInt(limitMatch[1], 10) : 10;
       const page = pageMatch && pageMatch[1] ? parseInt(pageMatch[1], 10) : 1;
+
+      if (limit > 50) {
+        return res
+          .status(400)
+          .send(
+            `Invalid limit value: ${limit}. Should be less than 50 or equal`,
+          );
+      }
 
       if (limit > 50) {
         limit = 50;

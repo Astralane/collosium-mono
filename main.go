@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -33,20 +32,20 @@ var cfg Config
 func init() {
 	dbConfig := database.DBConfig{}
 
-	flag.StringVar(&dbConfig.DBName, "db-name", "postgres", "TODO")
-	flag.StringVar(&dbConfig.User, "db-username", "postgres", "TODO")
-	flag.StringVar(&dbConfig.Password, "db-password", "postgres", "TODO")
-	flag.StringVar(&dbConfig.Host, "db-host", "localhost", "TODO")
-	flag.StringVar(&dbConfig.SslMode, "db-sslmode", "disable", "TODO")
+	flag.StringVar(&dbConfig.DBName, "db-name", "postgres", "postgres db name")
+	flag.StringVar(&dbConfig.User, "db-username", "postgres", "postgres db username")
+	flag.StringVar(&dbConfig.Password, "db-password", "postgres", "postgres db password")
+	flag.StringVar(&dbConfig.Host, "db-host", "localhost", "postgres db host")
+	flag.StringVar(&dbConfig.SslMode, "db-sslmode", "disable", "postgres db ssl mode")
 
 	cfg = Config{
 		dbDriver:     "postgres",
 		kafkaMaxWait: 1 * time.Millisecond,
 	}
 
-	flag.StringVar(&cfg.kafkaAddr, "kafka-address", "localhost:9092", "TODO")
-	flag.StringVar(&cfg.kafkaTopic, "kafka-topic", "geyser-to-workers", "TODO")
-	flag.StringVar(&cfg.kafkaGroupId, "kafka-groupid", "geyser-to-workers", "TODO")
+	flag.StringVar(&cfg.kafkaAddr, "kafka-address", "localhost:9092", "")
+	flag.StringVar(&cfg.kafkaTopic, "kafka-topic", "geyser-to-workers", "")
+	flag.StringVar(&cfg.kafkaGroupId, "kafka-groupid", "geyser-to-workers", "")
 
 	flag.Parse()
 

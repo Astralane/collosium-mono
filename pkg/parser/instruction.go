@@ -23,7 +23,7 @@ const getIdlQuery = "select idl from program_idl where program_pubkey = $1"
 const dbDefault = ""
 
 func processInstruction(instData InstructionData) {
-	println("processing instruction of transaction " + instData.sig + " and pubkey: " + instData.programId)
+	println("processing instruction of transaction " + instData.tx_id + " and pubkey: " + instData.programId)
 	indexConfigs := index_config.GlobalIndexConfig.Get()
 	for _, indexConfig := range indexConfigs {
 		go checkIndexAndInsert(instData, indexConfig)
@@ -53,7 +53,7 @@ func checkIndexAndInsert(instData InstructionData, indexConfig index_config.Inde
 			case "block_slot":
 				result, _ = index_config.ApplyPredicate(predicate, []string{strconv.FormatUint(instData.slot, 10)})
 			case "signature":
-				result, _ = index_config.ApplyPredicate(predicate, []string{instData.sig})
+				result, _ = index_config.ApplyPredicate(predicate, []string{instData.tx_id})
 			case "tx_id":
 				result, _ = index_config.ApplyPredicate(predicate, []string{strconv.FormatUint(instData.txIdx, 10)})
 			case "acount_keys":
@@ -168,6 +168,12 @@ func applyWithIdl(
 }
 
 func getInstruction(data []byte, idl map[string]interface{}) (map[string]interface{}, error) {
+	if idl == nil {
+		return nil, errors.New("idl is nil")
+	}
+	if data == nil {
+		return nil, errors.New("data is nil")
+	}
 	instructions := idl["instructions"].([]interface{})
 	for _, instruction := range instructions {
 		instructionMap := instruction.(map[string]interface{})
@@ -227,9 +233,9 @@ func executeQuery(query string, data InstructionData, columns []string) {
 		switch c {
 		case "block_slot":
 			params = append(params, data.slot)
-		case "signature":
-			params = append(params, data.sig)
 		case "tx_id":
+			params = append(params, data.tx_id)
+		case "tx_index":
 			params = append(params, data.txIdx)
 		case "account_keys":
 			params = append(params, data.accountKeys)

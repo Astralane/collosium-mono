@@ -10,7 +10,11 @@ export class DynamicGraphqlService {
 
   constructor(@InjectConnection() private readonly connection: Connection) {}
 
-  async generateSchema(id: string): Promise<GraphQLSchema> {
+  async generateSchema(
+    id: string,
+    limit?: number,
+    page?: number,
+  ): Promise<GraphQLSchema> {
     const tableName = await this.getTableNameById(id);
     if (!tableName) {
       this.logger.error(`Table not found for id ${id}`);
@@ -24,15 +28,15 @@ export class DynamicGraphqlService {
     }
 
     const typeDefs = this.createTypeDefs(tableName, columns);
-    const resolvers = this.createResolvers(tableName);
+    const resolvers = this.createResolvers(tableName, limit, page);
 
     return makeExecutableSchema({ typeDefs, resolvers });
   }
 
   private async getTableColumns(tableName: string): Promise<any[]> {
     const query = `
-      SELECT column_name, data_type
-      FROM information_schema.columns
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
       WHERE table_name = $1
     `;
     const result = await this.connection.query(query, [tableName]);
@@ -47,13 +51,6 @@ export class DynamicGraphqlService {
       })
       .join('\n');
 
-    const args = columns
-      .map((column) => {
-        const graphqlType = this.mapColumnTypeToGraphQL(column.data_type);
-        return `${column.column_name}: ${graphqlType}`;
-      })
-      .join('\n');
-
     return `
       type ${tableName} {
         ${fields}
@@ -61,7 +58,6 @@ export class DynamicGraphqlService {
 
       type Query {
         ${tableName}(
-          ${args},
           limit: Int,
           page: Int
         ): [${tableName}]
@@ -87,7 +83,11 @@ export class DynamicGraphqlService {
     }
   }
 
-  private createResolvers(tableName: string): any {
+  private createResolvers(
+    tableName: string,
+    limit?: number,
+    page?: number,
+  ): any {
     return {
       Query: {
         [tableName]: async (_, args) => {
@@ -96,15 +96,15 @@ export class DynamicGraphqlService {
             .map((key) => `${key} = '${args[key]}'`)
             .join(' AND ');
 
-          const limit = args.limit || 10;
-          const page = args.page || 1;
-          const offset = (page - 1) * limit;
+          const effectiveLimit = limit ? Math.min(limit, 50) : 10;
+          const effectivePage = page || 1;
+          const offset = (effectivePage - 1) * effectiveLimit;
 
           const query = `
-            SELECT *
-            FROM ${tableName}
+            SELECT * 
+            FROM ${tableName} 
             ${whereClauses ? `WHERE ${whereClauses}` : ''}
-            LIMIT ${limit} OFFSET ${offset}
+            LIMIT ${effectiveLimit} OFFSET ${offset}
           `;
 
           return await this.connection.query(query);

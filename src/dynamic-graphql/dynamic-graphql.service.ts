@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectConnection } from '@nestjs/typeorm';
-import { Connection } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { GraphQLSchema } from 'graphql';
 
@@ -8,12 +8,12 @@ import { GraphQLSchema } from 'graphql';
 export class DynamicGraphqlService {
   private readonly logger = new Logger(DynamicGraphqlService.name);
 
-  constructor(@InjectConnection() private readonly connection: Connection) {}
+  constructor(@InjectDataSource() private readonly connection: DataSource) {}
 
   async generateSchema(
     id: string,
-    limit?: number,
-    page?: number,
+    offset: number,
+    limit: number,
   ): Promise<GraphQLSchema> {
     const tableName = await this.getTableNameById(id);
     if (!tableName) {
@@ -28,7 +28,7 @@ export class DynamicGraphqlService {
     }
 
     const typeDefs = this.createTypeDefs(tableName, columns);
-    const resolvers = this.createResolvers(tableName, limit, page);
+    const resolvers = this.createResolvers(tableName, offset, limit);
 
     return makeExecutableSchema({ typeDefs, resolvers });
   }
@@ -52,15 +52,15 @@ export class DynamicGraphqlService {
       .join('\n');
 
     return `
-      type ${tableName} {
+      type SolanaInstruction {
         ${fields}
       }
 
       type Query {
-        ${tableName}(
+        solana_instructions(
           limit: Int,
           page: Int
-        ): [${tableName}]
+        ): [SolanaInstruction]
       }
 
       schema {
@@ -78,6 +78,8 @@ export class DynamicGraphqlService {
         return 'String';
       case 'boolean':
         return 'Boolean';
+      case 'ARRAY':
+        return '[String]';
       default:
         return 'String';
     }
@@ -85,26 +87,22 @@ export class DynamicGraphqlService {
 
   private createResolvers(
     tableName: string,
-    limit?: number,
-    page?: number,
+    offset: number,
+    limit: number,
   ): any {
     return {
       Query: {
-        [tableName]: async (_, args) => {
+        solana_instructions: async (_, args) => {
           const whereClauses = Object.keys(args)
             .filter((key) => key !== 'limit' && key !== 'page')
             .map((key) => `${key} = '${args[key]}'`)
             .join(' AND ');
 
-          const effectiveLimit = limit ? Math.min(limit, 50) : 10;
-          const effectivePage = page || 1;
-          const offset = (effectivePage - 1) * effectiveLimit;
-
           const query = `
             SELECT * 
             FROM ${tableName} 
             ${whereClauses ? `WHERE ${whereClauses}` : ''}
-            LIMIT ${effectiveLimit} OFFSET ${offset}
+            LIMIT ${limit} OFFSET ${offset}
           `;
 
           return await this.connection.query(query);

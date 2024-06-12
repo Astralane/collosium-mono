@@ -40,10 +40,12 @@ export class DynamicGraphqlController {
         limit = 50;
       }
 
+      const offset = (page - 1) * limit;
+
       const schema = await this.dynamicGraphqlService.generateSchema(
         id,
+        offset,
         limit,
-        page,
       );
       const server = new ApolloServer({ schema });
 

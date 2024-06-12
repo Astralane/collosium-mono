@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -18,7 +19,7 @@ import (
 
 type Config struct {
 	dbDriver string
-	dbConfig string
+	dbConfig database.DBConfig
 
 	kafkaAddr    string
 	kafkaTopic   string
@@ -40,7 +41,6 @@ func init() {
 
 	cfg = Config{
 		dbDriver:     "postgres",
-		dbConfig:     dbConfig.String(),
 		kafkaMaxWait: 1 * time.Millisecond,
 	}
 
@@ -49,6 +49,12 @@ func init() {
 	flag.StringVar(&cfg.kafkaGroupId, "kafka-groupid", "geyser-to-workers", "TODO")
 
 	flag.Parse()
+
+	// at that poing all argumets are parsed
+	// so we can put all structures to master struct (Config)
+	// all fields in flag.<Type>Var() are taken by reference so
+	// we should pass them to cfg (Config) either by reference or after flag.Parse()
+	cfg.dbConfig = dbConfig
 }
 
 func main() {
@@ -80,8 +86,9 @@ func main() {
 
 	// declare err variable here so DBConn won't be shadowed
 	var err error
-	database.Conn, err = sqlx.Connect(cfg.dbDriver, cfg.dbConfig)
+	database.Conn, err = sqlx.Connect(cfg.dbDriver, cfg.dbConfig.String())
 	if err != nil {
+		fmt.Println(cfg.dbConfig.String())
 		log.Fatal(err)
 	}
 	defer database.Conn.Close()

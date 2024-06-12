@@ -2,7 +2,6 @@ package index_config
 
 import (
 	"errors"
-	"fmt"
 	"slices"
 	"strconv"
 )

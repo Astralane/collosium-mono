@@ -1,6 +1,7 @@
 version: '3'
 services:
   zookeeper:
+    restart: on-failure
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper
     ports:
@@ -11,6 +12,9 @@ services:
     networks:
       - kafka-net
   kafka:
+    depends_on: 
+      - zookeeper
+    restart: on-failure
     image: confluentinc/cp-kafka:latest
     container_name: kafka
     ports:
@@ -25,10 +29,7 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR:
-        # by default it is checked every 300'000 ms = 5 mins
-        # so at max, event can be stored for 2h 4 min 59 sec
-      KAFKA_LOG_RETENTION_MS: 7200000
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
     networks:
       - kafka-net
 networks:

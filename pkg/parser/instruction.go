@@ -116,14 +116,14 @@ func loadIDL(programPubkey string) (map[string]interface{}, error) {
 	var dataString string
 	err = json.Unmarshal(data, &dataString)
 	if err != nil {
-		fmt.Println("Error parsing JSON string:", err)
+		log.Println("Error parsing JSON string:", err)
 		return nil, errors.New("error parsing JSON")
 	}
 
 	var dynamicJsonData map[string]interface{}
 	err = json.Unmarshal([]byte(dataString), &dynamicJsonData)
 	if err != nil {
-		fmt.Println("Error parsing JSON:", err)
+		log.Println("Error parsing JSON:", err)
 		return nil, errors.New("error parsing JSON")
 	}
 	return dynamicJsonData, nil

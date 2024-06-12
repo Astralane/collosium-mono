@@ -88,7 +88,7 @@ func main() {
 	var err error
 	database.Conn, err = sqlx.Connect(cfg.dbDriver, cfg.dbConfig.String())
 	if err != nil {
-		fmt.Println(cfg.dbConfig.String())
+		log.Println(cfg.dbConfig.String())
 		log.Fatal(err)
 	}
 	defer database.Conn.Close()

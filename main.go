@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"sync"
 	"time"
@@ -25,6 +26,30 @@ type Config struct {
 	kafkaMaxWait time.Duration
 }
 
+var cfg Config
+
+// parse flags here
+func init() {
+	dbConfig := database.DBConfig{}
+
+	flag.StringVar(&dbConfig.DBName, "db-name", "postgres", "TODO")
+	flag.StringVar(&dbConfig.User, "db-username", "postgres", "TODO")
+	flag.StringVar(&dbConfig.Password, "db-password", "postgres", "TODO")
+	flag.StringVar(&dbConfig.Host, "db-host", "localhost", "TODO")
+	flag.StringVar(&dbConfig.SslMode, "db-sslmode", "disable", "TODO")
+
+	cfg = Config{
+		dbDriver:     "postgres",
+		dbConfig:     dbConfig.String(),
+		kafkaMaxWait: 1 * time.Millisecond,
+	}
+
+	flag.StringVar(&cfg.kafkaAddr, "kafka-address", "localhost:9092", "TODO")
+	flag.StringVar(&cfg.kafkaTopic, "kafka-topic", "geyser-to-workers", "TODO")
+	flag.StringVar(&cfg.kafkaGroupId, "kafka-groupid", "geyser-to-workers", "TODO")
+
+	flag.Parse()
+}
 
 func main() {
 	//var m interface{}
@@ -43,15 +68,6 @@ func main() {
 	//}
 
 	wg := sync.WaitGroup{}
-	cfg := Config{
-		dbDriver: "postgres",
-		dbConfig: "user=postgres dbname=postgres sslmode=disable password=postgres host=localhost",
-
-		kafkaAddr:    "localhost:9092",
-		kafkaTopic:   "geyser-to-workers",
-		kafkaGroupId: "geyser-to-workers",
-		kafkaMaxWait: time.Millisecond * 1,
-	}
 
 	kafkaCfg := kafka.ReaderConfig{
 		Brokers:  []string{cfg.kafkaAddr},

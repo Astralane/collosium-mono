@@ -42,10 +42,25 @@ The release version should match the version of validator client you're running
 
 ### Managing kafka
 
+List all topics
+```
 docker-compose exec -it kafka /bin/kafka-topics --list --bootstrap-server kafka:29092
-docker-compose exec -it kafka /bin/kafka-topics --create --topic geyser-to-workers --partitions 1 --replication-factor 1 --bootstrap-server kafka:29092
-docker-compose exec -it kafka /bin/kafka-console-producer --topic geyser-to-workers --broker-list kafka:29092
+```
+
+Create new topic (set number of partitions more or equal to the number of workers you wanna run)
+```
+docker-compose exec -it kafka /bin/kafka-topics --create --topic geyser-to-workers --partitions 2 --replication-factor 1 --bootstrap-server kafka:29092
+```
+
+Send message to `geyser-to-workers` topic
+```
 docker-compose exec -it kafka /bin/kafka-console-consumer --topic geyser-to-workers --from-beginning --bootstrap-server kafka:29092
+```
+
+Listen for messages from `geyser-to-workers` topic
+```
+docker-compose exec -it kafka /bin/kafka-console-producer --topic geyser-to-workers --broker-list kafka:29092
+```
 
 ### Helper Scripts
 

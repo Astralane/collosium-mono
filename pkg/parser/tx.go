@@ -17,7 +17,7 @@ type CustomInstructionColumn struct {
 
 type InstructionData struct {
 	slot              uint64
-	sig               string
+	tx_id             string
 	txIdx             uint64
 	accountKeys       []string
 	programId         string
@@ -54,7 +54,7 @@ func ProcessKafkaMsg(msg kafka.Message) {
 
 		instData := InstructionData{
 			slot:        tx.GetSlot(),
-			sig:         signature,
+			tx_id:       signature,
 			txIdx:       tx.GetTxIdx(),
 			accountKeys: accountKeys,
 			programId:   accountKeys[ins.GetProgramIdIndex()],
@@ -73,7 +73,7 @@ func ProcessKafkaMsg(msg kafka.Message) {
 
 			instData := InstructionData{
 				slot:        tx.GetSlot(),
-				sig:         signature,
+				tx_id:       signature,
 				txIdx:       tx.GetTxIdx(),
 				accountKeys: accountKeys,
 				programId:   accountKeys[ins.GetProgramIdIndex()],

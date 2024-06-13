@@ -1,161 +1,89 @@
 package main
 
 import (
+	"flag"
+	"log"
+	"sync"
+	"time"
+
 	"github.com/astraline/astraline-filtering-service/pkg/database"
 	"github.com/astraline/astraline-filtering-service/pkg/index_config"
 	"github.com/astraline/astraline-filtering-service/pkg/job"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/segmentio/kafka-go"
-	"log"
-	"sync"
 )
-
-// TODO: start main job to read config from DB
-// TODO: filter instructions and put to DB
 
 // TODO: add ctrl+c hook to safely stop all jobs
 
 type Config struct {
 	dbDriver string
-	dbConfig string
+	dbConfig database.DBConfig
 
 	kafkaAddr    string
 	kafkaTopic   string
 	kafkaGroupId string
+	kafkaMaxWait time.Duration
 }
 
-const s = `{
-    "version": "0.1.0",
-    "name": "piggybank",
-    "instructions": [
-        {
-            "name": "initialize",
-            "accounts": [
-                {
-                    "name": "piggyBank",
-                    "isMut": true,
-                    "isSigner": true
-                },
-                {
-                    "name": "user",
-                    "isMut": true,
-                    "isSigner": true
-                },
-                {
-                    "name": "systemProgram",
-                    "isMut": false,
-                    "isSigner": false
-                }
-            ],
-            "args": []
-        },
-        {
-            "name": "deposit",
-            "accounts": [
-                {
-                    "name": "piggyBank",
-                    "isMut": true,
-                    "isSigner": false
-                },
-                {
-                    "name": "user",
-                    "isMut": false,
-                    "isSigner": true
-                }
-            ],
-            "args": [
-                {
-                    "name": "amount",
-                    "type": "u64"
-                }
-            ]
-        },
-        {
-            "name": "withdraw",
-            "accounts": [
-                {
-                    "name": "piggyBank",
-                    "isMut": true,
-                    "isSigner": false
-                },
-                {
-                    "name": "user",
-                    "isMut": false,
-                    "isSigner": true
-                }
-            ],
-            "args": [
-                {
-                    "name": "amount",
-                    "type": "u64"
-                }
-            ]
-        }
-    ],
-    "accounts": [
-        {
-            "name": "PiggyBank",
-            "type": {
-                "kind": "struct",
-                "fields": [
-                    {
-                        "name": "amount",
-                        "type": "u64"
-                    }
-                ]
-            }
-        }
-    ]
-}`
+var cfg Config
+
+// parse flags here
+func init() {
+	dbConfig := database.DBConfig{}
+
+	flag.StringVar(&dbConfig.DBName, "db-name", "postgres", "postgres db name")
+	flag.StringVar(&dbConfig.User, "db-username", "postgres", "postgres db username")
+	flag.StringVar(&dbConfig.Password, "db-password", "postgres", "postgres db password")
+	flag.StringVar(&dbConfig.Host, "db-host", "localhost", "postgres db host")
+	flag.StringVar(&dbConfig.Port, "db-port", "5432", "postgres db port")
+	flag.StringVar(&dbConfig.SslMode, "db-sslmode", "disable", "postgres db ssl mode")
+
+	cfg = Config{
+		dbDriver:     "postgres",
+		kafkaMaxWait: 1 * time.Millisecond,
+	}
+
+	flag.StringVar(&cfg.kafkaAddr, "kafka-address", "localhost:9092", "")
+	flag.StringVar(&cfg.kafkaTopic, "kafka-topic", "geyser-to-workers", "")
+	flag.StringVar(&cfg.kafkaGroupId, "kafka-groupid", "geyser-to-workers", "")
+
+	flag.Parse()
+
+	// at that point all argumets are parsed
+	// so we can put all structures to master struct (Config)
+	// all fields in flag.<Type>Var() are taken by reference so
+	// we should pass them to cfg (Config) either by reference or after flag.Parse()
+	cfg.dbConfig = dbConfig
+}
 
 func main() {
-	//var m interface{}
-	//err := json.Unmarshal([]byte(s), &m)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//var k = m.(map[string]interface{})
-	//var i = k["instructions"]
-	//var ii = i.([]interface{})
-	//for _, i1 := range ii {
-	//
-	//	var iii = i1.(map[string]interface{})
-	//	fmt.Println(iii)
-	//}
-
 	wg := sync.WaitGroup{}
-	cfg := Config{
-		dbDriver: "postgres",
-		dbConfig: "user=postgres dbname=postgres sslmode=disable password=postgres host=localhost",
-
-		kafkaAddr:    "localhost:9092",
-		kafkaTopic:   "geyser-to-workers",
-		kafkaGroupId: "geyser-to-workers",
-	}
 
 	kafkaCfg := kafka.ReaderConfig{
 		Brokers:  []string{cfg.kafkaAddr},
 		Topic:    cfg.kafkaTopic,
 		GroupID:  cfg.kafkaGroupId,
-		MinBytes: 10e3, // 10KB
-		MaxBytes: 10e6, // 10MB
+		MinBytes: 1,    // 10B
+		MaxBytes: 10e3, // 10KB
+		MaxWait:  cfg.kafkaMaxWait,
 	}
 
 	// declare err variable here so DBConn won't be shadowed
 	var err error
-	database.Conn, err = sqlx.Connect(cfg.dbDriver, cfg.dbConfig)
+	database.Conn, err = sqlx.Connect(cfg.dbDriver, cfg.dbConfig.String())
 	if err != nil {
+		log.Printf("Failed to connect to db with config: %s", cfg.dbConfig.String())
 		log.Fatal(err)
 	}
 	defer database.Conn.Close()
 
 	// test db connection
 	if err := database.Conn.Ping(); err != nil {
+		log.Printf("Failed to ping db at %s:%s", cfg.dbConfig.Host, cfg.dbConfig.Port)
 		log.Fatal(err)
 	} else {
-		log.Println("Successfully Connected")
+		log.Printf("Successfully connected to db at %s:%s", cfg.dbConfig.Host, cfg.dbConfig.Port)
 	}
 
 	wg.Add(2)

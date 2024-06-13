@@ -6,7 +6,7 @@ export class AuthService {
   constructor(private readonly httpService: HttpService) {}
 
   async isValidApiKey(apiKey: string): Promise<boolean> {
-    const url = `http://localhost:3001/keys/${apiKey}`;
+    const url = `${process.env.ADMIN_SERVICE_API_URL}/keys/${apiKey}`;
     try {
       const response = await this.httpService.axiosRef.get(url);
       return response.status === 200;

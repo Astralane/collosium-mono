@@ -18,7 +18,7 @@ configDotenv();
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
+      host: 'host.docker.internal',
       port: parseInt(process.env.POSTGRES_PORT, 10),
       username: process.env.POSTGRES_USER_NAME,
       password: process.env.POSTGRES_PASSWORD,

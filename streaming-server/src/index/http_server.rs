@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{App, Error, HttpResponse, HttpServer, web};
+use actix_web::{App, Error, error, HttpResponse, HttpServer, web};
 use log::info;
 use serde::Deserialize;
 use serde_json::Value::Null;
@@ -91,9 +91,6 @@ impl IndexerHttpServer {
         mut raw_data: web::Json<IndexConfigurationDTO>,
         data: web::Data<DataWrapper>,
     ) -> std::result::Result<HttpResponse, Error> {
-
-
-
         let access_key = Uuid::new_v4();
         let access_key_underscored = access_key.to_string().replace("-", "_");
 
@@ -138,7 +135,9 @@ impl IndexerHttpServer {
             return Ok(HttpResponse::InternalServerError().finish())
         }
 
-        maybe_store_idl(data.idl_downloader.clone(), &json_config).await.unwrap();
+        if let Err(err) = maybe_store_idl(data.idl_downloader.clone(), &json_config).await {
+            return Err(error::ErrorBadRequest(err))
+        }
 
         let mut configs = data.index_configs.lock().await;
         configs.push(raw_data);
@@ -168,6 +167,8 @@ async fn maybe_store_idl(idl_downloader: Arc<Mutex<IDLDownloader>>, json_config:
 
             if let Ok(program_idl) = idl_downloader.download_idl(program_pubkey).await {
                 idl_downloader.store_idl(program_pubkey, &program_idl).await.unwrap();
+            } else {
+                return Err(format!("Can't find idl for program {program_pubkey}"))
             }
         }
     }

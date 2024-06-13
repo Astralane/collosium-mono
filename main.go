@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -32,21 +33,27 @@ var cfg Config
 func init() {
 	dbConfig := database.DBConfig{}
 
-	flag.StringVar(&dbConfig.DBName, "db-name", "postgres", "postgres db name")
-	flag.StringVar(&dbConfig.User, "db-username", "postgres", "postgres db username")
-	flag.StringVar(&dbConfig.Password, "db-password", "postgres", "postgres db password")
-	flag.StringVar(&dbConfig.Host, "db-host", "localhost", "postgres db host")
-	flag.StringVar(&dbConfig.Port, "db-port", "5432", "postgres db port")
-	flag.StringVar(&dbConfig.SslMode, "db-sslmode", "disable", "postgres db ssl mode")
+	flag.StringVar(&dbConfig.DBName, "db-name", getenv("DB_NAME", "postgres"),
+		"postgres db name")
+	flag.StringVar(&dbConfig.User, "db-username", getenv("DB_USERNAME", "postgres"),
+		"postgres db username")
+	flag.StringVar(&dbConfig.Password, "db-password", getenv("DB_PASSWORD", "postgres"),
+		"postgres db password")
+	flag.StringVar(&dbConfig.Host, "db-host", getenv("DB_HOST", "localhost"),
+		"postgres db host")
+	flag.StringVar(&dbConfig.Port, "db-port", getenv("DB_PORT", "5432"),
+		"postgres db port")
+	flag.StringVar(&dbConfig.SslMode, "db-sslmode", getenv("db-sslmode", "disable"),
+		"postgres db ssl mode")
 
 	cfg = Config{
 		dbDriver:     "postgres",
 		kafkaMaxWait: 1 * time.Millisecond,
 	}
 
-	flag.StringVar(&cfg.kafkaAddr, "kafka-address", "localhost:9092", "")
-	flag.StringVar(&cfg.kafkaTopic, "kafka-topic", "geyser-to-workers", "")
-	flag.StringVar(&cfg.kafkaGroupId, "kafka-groupid", "geyser-to-workers", "")
+	flag.StringVar(&cfg.kafkaAddr, "kafka-address", getenv("KAFKA_ADDRESS", "localhost:9092"), "")
+	flag.StringVar(&cfg.kafkaTopic, "kafka-topic", getenv("KAFKA_TOPIC", "geyser-to-workers"), "")
+	flag.StringVar(&cfg.kafkaGroupId, "kafka-groupid", getenv("KAFKA_GROUPID", "geyser-to-workers"), "")
 
 	flag.Parse()
 
@@ -55,6 +62,14 @@ func init() {
 	// all fields in flag.<Type>Var() are taken by reference so
 	// we should pass them to cfg (Config) either by reference or after flag.Parse()
 	cfg.dbConfig = dbConfig
+}
+
+func getenv(key, fallback string) string {
+	value := os.Getenv(key)
+	if len(value) == 0 {
+		return fallback
+	}
+	return value
 }
 
 func main() {

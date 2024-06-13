@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectConnection } from '@nestjs/typeorm';
-import { Connection } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { GraphQLSchema } from 'graphql';
 
@@ -8,9 +8,13 @@ import { GraphQLSchema } from 'graphql';
 export class DynamicGraphqlService {
   private readonly logger = new Logger(DynamicGraphqlService.name);
 
-  constructor(@InjectConnection() private readonly connection: Connection) {}
+  constructor(@InjectDataSource() private readonly connection: DataSource) {}
 
-  async generateSchema(id: string): Promise<GraphQLSchema> {
+  async generateSchema(
+    id: string,
+    offset: number,
+    limit: number,
+  ): Promise<GraphQLSchema> {
     const tableName = await this.getTableNameById(id);
     if (!tableName) {
       this.logger.error(`Table not found for id ${id}`);
@@ -24,15 +28,15 @@ export class DynamicGraphqlService {
     }
 
     const typeDefs = this.createTypeDefs(tableName, columns);
-    const resolvers = this.createResolvers(tableName);
+    const resolvers = this.createResolvers(tableName, offset, limit);
 
     return makeExecutableSchema({ typeDefs, resolvers });
   }
 
   private async getTableColumns(tableName: string): Promise<any[]> {
     const query = `
-      SELECT column_name, data_type
-      FROM information_schema.columns
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
       WHERE table_name = $1
     `;
     const result = await this.connection.query(query, [tableName]);
@@ -47,24 +51,16 @@ export class DynamicGraphqlService {
       })
       .join('\n');
 
-    const args = columns
-      .map((column) => {
-        const graphqlType = this.mapColumnTypeToGraphQL(column.data_type);
-        return `${column.column_name}: ${graphqlType}`;
-      })
-      .join('\n');
-
     return `
-      type ${tableName} {
+      type SolanaInstruction {
         ${fields}
       }
 
       type Query {
-        ${tableName}(
-          ${args},
+        solana_instructions(
           limit: Int,
           page: Int
-        ): [${tableName}]
+        ): [SolanaInstruction]
       }
 
       schema {
@@ -82,27 +78,29 @@ export class DynamicGraphqlService {
         return 'String';
       case 'boolean':
         return 'Boolean';
+      case 'ARRAY':
+        return '[String]';
       default:
         return 'String';
     }
   }
 
-  private createResolvers(tableName: string): any {
+  private createResolvers(
+    tableName: string,
+    offset: number,
+    limit: number,
+  ): any {
     return {
       Query: {
-        [tableName]: async (_, args) => {
+        solana_instructions: async (_, args) => {
           const whereClauses = Object.keys(args)
             .filter((key) => key !== 'limit' && key !== 'page')
             .map((key) => `${key} = '${args[key]}'`)
             .join(' AND ');
 
-          const limit = args.limit || 10;
-          const page = args.page || 1;
-          const offset = (page - 1) * limit;
-
           const query = `
-            SELECT *
-            FROM ${tableName}
+            SELECT * 
+            FROM ${tableName} 
             ${whereClauses ? `WHERE ${whereClauses}` : ''}
             LIMIT ${limit} OFFSET ${offset}
           `;

@@ -47,7 +47,7 @@ func init() {
 		"postgres db host")
 	flag.StringVar(&dbConfig.Port, "db-port", getenv("DB_PORT", "5432"),
 		"postgres db port")
-	flag.StringVar(&dbConfig.SslMode, "db-sslmode", getenv("db-sslmode", "disable"),
+	flag.StringVar(&dbConfig.SslMode, "db-sslmode", getenv("DB_SSLMODE", "disable"),
 		"postgres db ssl mode")
 
 	cfg = Config{
@@ -59,7 +59,7 @@ func init() {
 	flag.StringVar(&cfg.kafkaTopic, "kafka-topic", getenv("KAFKA_TOPIC", "geyser-to-workers"), "")
 	flag.StringVar(&cfg.kafkaGroupId, "kafka-groupid", getenv("KAFKA_GROUPID", "geyser-to-workers"), "")
 
-	flag.StringVar(&cfg.httpPort, "http-port", getenv("http-port", "8079"), "http port")
+	flag.StringVar(&cfg.httpPort, "http-port", getenv("HTTP_PORT", "8079"), "http port")
 
 	flag.Parse()
 

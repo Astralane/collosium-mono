@@ -30,13 +30,7 @@ type InstructionData struct {
 }
 
 func ProcessKafkaMsg(msg kafka.Message) {
-	defer func() {
-		// recover from panic if one occurred. Set err to nil otherwise.
-		panicValue := recover()
-		if panicValue != nil {
-			log.Printf("Panic during processing kafka message: %s", panicValue)
-		}
-	}()
+	defer catchAndlogPanic("Panic during processing kafka message")
 
 	txUpdate := &protos_out.TimestampedTransactionUpdate{}
 	err := proto.Unmarshal(msg.Value, txUpdate)
@@ -110,4 +104,11 @@ func parseAccounts(accounts []byte, accountKeys []string) []string {
 		result = append(result, accountKeys[accountIndex])
 	}
 	return result
+}
+
+func catchAndlogPanic(message string) {
+	panicValue := recover()
+	if panicValue != nil {
+		log.Printf("%s: %s", message, panicValue)
+	}
 }

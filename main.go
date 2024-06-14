@@ -95,10 +95,10 @@ func main() {
 
 	// test db connection
 	if err := database.Conn.Ping(); err != nil {
-		log.Printf("Failed to ping db at %s:%s", cfg.dbConfig.Host, cfg.dbConfig.Port)
+		log.Printf("Failed to ping database at %s:%s", cfg.dbConfig.Host, cfg.dbConfig.Port)
 		log.Fatal(err)
 	} else {
-		log.Printf("Successfully connected to db at %s:%s", cfg.dbConfig.Host, cfg.dbConfig.Port)
+		log.Printf("Connected to database at %s:%s", cfg.dbConfig.Host, cfg.dbConfig.Port)
 	}
 
 	wg.Add(2)

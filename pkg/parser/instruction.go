@@ -23,7 +23,7 @@ const getIdlQuery = "select idl from program_idl where program_pubkey = $1"
 const dbDefault = ""
 
 func processInstruction(instData InstructionData) {
-	println("processing instruction of transaction " + instData.tx_id + " and pubkey: " + instData.programId)
+	//log.Printf("processing instruction of transaction %s and pubkey: %s", instData.tx_id, instData.programId)
 	indexConfigs := index_config.GlobalIndexConfig.Get()
 	for _, indexConfig := range indexConfigs {
 		go checkIndexAndInsert(instData, indexConfig)
@@ -104,11 +104,9 @@ func maybeLoadIDL(
 //}
 
 func loadIDL(programPubkey string) (map[string]interface{}, error) {
-	println("loading idl for pubkey " + programPubkey)
 	var data []byte
 	err := database.Conn.Get(&data, getIdlQuery, programPubkey)
 	if err != nil {
-		log.Println("couldn't get idl from db")
 		return nil, err
 		// TODO: fix it
 		// panic(err)
@@ -116,14 +114,12 @@ func loadIDL(programPubkey string) (map[string]interface{}, error) {
 	var dataString string
 	err = json.Unmarshal(data, &dataString)
 	if err != nil {
-		log.Println("Error parsing JSON string:", err)
 		return nil, errors.New("error parsing JSON")
 	}
 
 	var dynamicJsonData map[string]interface{}
 	err = json.Unmarshal([]byte(dataString), &dynamicJsonData)
 	if err != nil {
-		log.Println("Error parsing JSON:", err)
 		return nil, errors.New("error parsing JSON")
 	}
 	return dynamicJsonData, nil
@@ -264,7 +260,6 @@ func executeQuery(query string, data InstructionData, columns []string) {
 		log.Printf("DATA: %+v", data)
 		return
 	}
-	log.Println("saved data to index db")
 }
 
 func getInstructionName(data map[string]any) any {

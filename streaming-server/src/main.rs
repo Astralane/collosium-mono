@@ -126,7 +126,12 @@ async fn main() {
 
     let index_configs = Arc::new(Mutex::new(vec![]));
 
-    let index_http_server = Indexer::new(db_pool.clone(), index_configs.clone(), &args.rpc_url).await;
+    let index_http_server = Indexer::new(
+        db_pool.clone(),
+        index_configs.clone(),
+        &args.rpc_url,
+        &args.admin_server_url
+    ).await;
 
     let http_server_handle = tokio::spawn(async move {
         index_http_server.start().await;

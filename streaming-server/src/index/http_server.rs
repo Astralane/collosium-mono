@@ -11,6 +11,9 @@ use uuid::Uuid;
 use astraline_streaming_server::Result;
 
 use crate::idl::idl::IDLDownloader;
+use crate::index::middleware::ApiKeyMiddleware;
+use futures::executor::block_on;
+use serde_json::json;
 use crate::index::parser::IndexFilterPredicate::EQ;
 use crate::ldb::solana_instructions;
 use crate::ldb::solana_instructions::is_custom_column;
@@ -35,15 +38,17 @@ pub struct Indexer {
 }
 struct IndexerHttpServer {
     port: i16,
+    admin_server_url: String
 }
 
 impl Indexer {
     pub async fn new(db_pool: Arc<Mutex<Pool<Postgres>>>,
                      index_configs: Arc<Mutex<Vec<IndexConfiguration>>>,
-                     rpc_url: &str
+                     rpc_url: &str,
+                     admin_server_url: &str,
     ) -> Self {
         Self {
-            server: IndexerHttpServer::new(9696),
+            server: IndexerHttpServer::new(9696, admin_server_url),
             data: DataWrapper {
                 db: db_pool.clone(),
                 index_configs,
@@ -58,15 +63,18 @@ impl Indexer {
 }
 
 impl IndexerHttpServer {
-    pub fn new(port: i16) -> Self {
-        Self { port }
+    pub fn new(port: i16, admin_server_url: &str) -> Self {
+        Self { port, admin_server_url: String::from(admin_server_url) }
     }
+
     pub async fn start(&self, db: DataWrapper) {
         let addr = format!("127.0.0.1:{}", self.port);
         info!("starting http server at http://{0}:{1}", "localhost", self.port);
+        let auth_middleware = ApiKeyMiddleware::new(&self.admin_server_url);
         let server = HttpServer::new(move || {
             App::new()
                 .app_data(web::Data::new(db.clone()))
+                .wrap(auth_middleware.clone())
                 .service(web::resource("/index").route(web::post().to(Self::create_new_index)))
                 .service(web::resource("/idl").route(web::get().to(Self::fetch_idl)))
         })

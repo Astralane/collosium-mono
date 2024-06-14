@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 const (
-	kafkaReadTimeout = 10
+	kafkaReadTimeout = 1
 )
 
 type job struct {
@@ -28,6 +29,7 @@ func (w *job) Start(q chan bool, wg *sync.WaitGroup) {
 
 	for {
 		reader := kafka.NewReader(w.kafkaCfg)
+		log.Printf("Connected to kafka at %s", strings.Join(w.kafkaCfg.Brokers[:], ","))
 		err := w.run(q, reader)
 		reader.Close()
 		if err == nil {

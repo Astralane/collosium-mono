@@ -17,7 +17,7 @@ type CustomInstructionColumn struct {
 
 type InstructionData struct {
 	slot              uint64
-	sig               string
+	tx_id             string
 	txIdx             uint64
 	accountKeys       []string
 	programId         string
@@ -30,6 +30,8 @@ type InstructionData struct {
 }
 
 func ProcessKafkaMsg(msg kafka.Message) {
+	defer catchAndlogPanic("Panic during processing kafka message")
+
 	txUpdate := &protos_out.TimestampedTransactionUpdate{}
 	err := proto.Unmarshal(msg.Value, txUpdate)
 	if err != nil {
@@ -54,7 +56,7 @@ func ProcessKafkaMsg(msg kafka.Message) {
 
 		instData := InstructionData{
 			slot:        tx.GetSlot(),
-			sig:         signature,
+			tx_id:       signature,
 			txIdx:       tx.GetTxIdx(),
 			accountKeys: accountKeys,
 			programId:   accountKeys[ins.GetProgramIdIndex()],
@@ -73,7 +75,7 @@ func ProcessKafkaMsg(msg kafka.Message) {
 
 			instData := InstructionData{
 				slot:        tx.GetSlot(),
-				sig:         signature,
+				tx_id:       signature,
 				txIdx:       tx.GetTxIdx(),
 				accountKeys: accountKeys,
 				programId:   accountKeys[ins.GetProgramIdIndex()],
@@ -102,4 +104,11 @@ func parseAccounts(accounts []byte, accountKeys []string) []string {
 		result = append(result, accountKeys[accountIndex])
 	}
 	return result
+}
+
+func catchAndlogPanic(message string) {
+	panicValue := recover()
+	if panicValue != nil {
+		log.Printf("%s: %s", message, panicValue)
+	}
 }

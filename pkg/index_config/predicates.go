@@ -2,7 +2,6 @@ package index_config
 
 import (
 	"errors"
-	"fmt"
 	"slices"
 	"strconv"
 )
@@ -62,7 +61,6 @@ func applyLT(pred IndexFilterPredicate, other string) (bool, error) {
 }
 
 func applyGT(pred IndexFilterPredicate, other string) (bool, error) {
-	fmt.Println("checking greater then on " + other)
 	i1, err1 := strconv.ParseInt(other, 10, 64)
 	i2, err2 := strconv.ParseInt(pred.Value[0], 10, 64)
 	if err1 == nil && err2 == nil {

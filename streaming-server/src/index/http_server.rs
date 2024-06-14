@@ -10,6 +10,7 @@ use tokio::task::spawn_blocking;
 use uuid::Uuid;
 use astraline_streaming_server::Result;
 use crate::idl::idl::IDLDownloader;
+use crate::index::middleware::ApiKeyMiddleware;
 use futures::executor::block_on;
 use serde_json::json;
 use serde_json::Value::Null;
@@ -69,6 +70,7 @@ impl IndexerHttpServer {
         let server = HttpServer::new(move || {
             App::new()
                 .app_data(web::Data::new(db.clone()))
+                .wrap(ApiKeyMiddleware)
                 .service(web::resource("/index").route(web::post().to(Self::create_new_index)))
                 .service(web::resource("/idl").route(web::get().to(Self::fetch_idl)))
         })

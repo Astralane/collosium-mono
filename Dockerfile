@@ -24,6 +24,4 @@ COPY --from=build-app /usr/src/app/node_modules ./node_modules
 COPY --from=build-app /usr/src/app/dist ./dist
 COPY package.json ./
 
-EXPOSE 3000
-
 CMD ["npm", "run", "start:prod"]

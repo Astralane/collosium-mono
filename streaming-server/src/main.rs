@@ -3,7 +3,10 @@ use std::net::ToSocketAddrs;
 use std::sync::Arc;
 
 use clap::Parser;
+use env_logger::Env;
+use log::{info, LevelFilter};
 use sqlx::postgres::PgPoolOptions;
+use tokio::join;
 use tokio::sync::Mutex;
 use tonic::transport::Server;
 
@@ -53,54 +56,57 @@ struct Args {
 
 const DB_CONNECTION_POOL_SIZE: u32 = 10;
 
+
 #[tokio::main]
 async fn main() {
+    env_logger::Builder::from_env(Env::default().default_filter_or("astraline_streaming_server=info")).init();
+
     let args: Args = Args::parse();
 
-    let relayer_client = match get_relayer_client(&args.relayer_url).await {
-        Ok(relayer_client) => {
-            println!("connected to relayer at {0}", &args.relayer_url);
-            Some(relayer_client)
-        },
-        Err(err) => {
-            println!("failed to connect to relayer at {0}, proceeding without it. Err: {1}", &args.relayer_url, err);
-            None
-        }
-    };
+    // let relayer_client = match get_relayer_client(&args.relayer_url).await {
+    //     Ok(relayer_client) => {
+    //         println!("connected to relayer at {0}", &args.relayer_url);
+    //         Some(relayer_client)
+    //     },
+    //     Err(err) => {
+    //         println!("failed to connect to relayer at {0}, proceeding without it. Err: {1}", &args.relayer_url, err);
+    //         None
+    //     }
+    // };
+    //
+    // let geyser_client = match get_geyser_client(&args.geyser_url).await {
+    //     Ok(geyser_client) => {
+    //         println!("connected to geyser at {0}", &args.geyser_url);
+    //         Some(geyser_client)
+    //     },
+    //     Err(err) => {
+    //         println!("failed to connect to geyser at {0}, proceeding without it. Err: {1}", &args.geyser_url, err);
+    //         None
+    //     }
+    // };
 
-    let geyser_client = match get_geyser_client(&args.geyser_url).await {
-        Ok(geyser_client) => {
-            println!("connected to geyser at {0}", &args.geyser_url);
-            Some(geyser_client)
-        },
-        Err(err) => {
-            println!("failed to connect to geyser at {0}, proceeding without it. Err: {1}", &args.geyser_url, err);
-            None
-        }
-    };
+    // let relayer_subscription = match relayer_client {
+    //     Some(mut relayer_client) => {
+    //         let relayer_subscription = relayer_client.subscribe_client_packets(
+    //             jito_protos::relayer::SubscribePacketsRequest {}
+    //         ).await;
+    //         Some(relayer_subscription.unwrap().into_inner())
+    //     }
+    //     None => None,
+    // };
+    //
+    // let geyser_subscription = match geyser_client {
+    //     Some(mut geyser_client) => {
+    //         let geyser_subscription = geyser_client.subscribe_transaction_updates(
+    //             SubscribeTransactionUpdatesRequest {}
+    //         ).await;
+    //         Some(geyser_subscription.unwrap().into_inner())
+    //     }
+    //     None => None
+    // };
 
-    let relayer_subscription = match relayer_client {
-        Some(mut relayer_client) => {
-            let relayer_subscription = relayer_client.subscribe_client_packets(
-                jito_protos::relayer::SubscribePacketsRequest {}
-            ).await;
-            Some(relayer_subscription.unwrap().into_inner())
-        }
-        None => None,
-    };
-
-    let geyser_subscription = match geyser_client {
-        Some(mut geyser_client) => {
-            let geyser_subscription = geyser_client.subscribe_transaction_updates(
-                SubscribeTransactionUpdatesRequest {}
-            ).await;
-            Some(geyser_subscription.unwrap().into_inner())
-        }
-        None => None
-    };
-
-    let processed_selectors = Arc::new(Mutex::new(HashMap::new()));
-    let unprocessed_selectors = Arc::new(Mutex::new(HashMap::new()));
+    // let processed_selectors = Arc::new(Mutex::new(HashMap::new()));
+    // let unprocessed_selectors = Arc::new(Mutex::new(HashMap::new()));
 
     let db_pool = PgPoolOptions::new()
         .max_connections(DB_CONNECTION_POOL_SIZE)
@@ -120,33 +126,39 @@ async fn main() {
 
     let index_configs = Arc::new(Mutex::new(vec![]));
 
-    let index_http_server = Indexer::new(db_pool.clone(), index_configs.clone(), &args.rpc_url).await;
+    let index_http_server = Indexer::new(
+        db_pool.clone(),
+        index_configs.clone(),
+        &args.rpc_url,
+        &args.admin_server_url
+    ).await;
 
-    tokio::spawn(async move {
+    let http_server_handle = tokio::spawn(async move {
         index_http_server.start().await;
     });
+    //
+    // let streaming_server = StreamingServerImpl::new(
+    //     processed_selectors,
+    //     unprocessed_selectors,
+    //     args.admin_server_url,
+    //     db_pool,
+    //     index_configs.clone()
+    // );
+    // let mut streaming_server_copy = streaming_server.clone();
 
-    let streaming_server = StreamingServerImpl::new(
-        processed_selectors,
-        unprocessed_selectors,
-        args.admin_server_url,
-        db_pool,
-        index_configs.clone()
-    );
-    let mut streaming_server_copy = streaming_server.clone();
+    // tokio::spawn(async move {
+    //     streaming_server_copy.serve(geyser_subscription, relayer_subscription).await;
+    // });
 
-    tokio::spawn(async move {
-        streaming_server_copy.serve(geyser_subscription, relayer_subscription).await;
-    });
+    // println!("starting streaming server at grpc://{0}", args.bind_address);
+    // Server::builder()
+    //     .add_service(StreamingServiceServer::new(
+    //         streaming_server
+    //     ))
+    //     .serve(args.bind_address.to_socket_addrs().unwrap().next().unwrap())
+    //     .await
+    //     .expect("streaming server failed");
 
-    println!("starting streaming server at grpc://{0}", args.bind_address);
-    Server::builder()
-        .add_service(StreamingServiceServer::new(
-            streaming_server
-        ))
-        .serve(args.bind_address.to_socket_addrs().unwrap().next().unwrap())
-        .await
-        .expect("streaming server failed");
-
+    join!(http_server_handle);
     println!("streaming server finished");
 }

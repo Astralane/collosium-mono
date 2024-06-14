@@ -211,7 +211,6 @@ func constructQuery(indexConfig index_config.IndexConfiguration) string {
 }
 
 func executeQuery(query string, data InstructionData, columns []string) {
-	log.Printf("trying to save data to index, query: %s\n", query)
 	params := make([]interface{}, 0, len(columns))
 	// paramsMap := map[string]interface{}{}
 	idl, err := loadIDL(data.programId)
@@ -290,8 +289,6 @@ func getAccountPubKey(accountName string, pd map[string]any, rcvdAccounts []stri
 	accountIndex := -1
 	for i, account := range accounts {
 		accountMap := account.(map[string]interface{})
-		log.Printf("trying to convert name, name: %+v\n", accountMap["name"])
-		log.Printf("with account name: %s\n", accountName)
 		accountParsed := accountMap["name"].(string)
 		if strings.ToLower(accountName) == strings.ToLower(accountParsed) {
 			accountIndex = i

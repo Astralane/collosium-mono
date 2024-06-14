@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -25,6 +27,8 @@ type Config struct {
 	kafkaTopic   string
 	kafkaGroupId string
 	kafkaMaxWait time.Duration
+
+	httpPort string
 }
 
 var cfg Config
@@ -55,6 +59,8 @@ func init() {
 	flag.StringVar(&cfg.kafkaTopic, "kafka-topic", getenv("KAFKA_TOPIC", "geyser-to-workers"), "")
 	flag.StringVar(&cfg.kafkaGroupId, "kafka-groupid", getenv("KAFKA_GROUPID", "geyser-to-workers"), "")
 
+	flag.StringVar(&cfg.httpPort, "http-port", getenv("http-port", "8079"), "http port")
+
 	flag.Parse()
 
 	// at that point all argumets are parsed
@@ -76,12 +82,14 @@ func main() {
 	wg := sync.WaitGroup{}
 
 	kafkaCfg := kafka.ReaderConfig{
-		Brokers:  []string{cfg.kafkaAddr},
-		Topic:    cfg.kafkaTopic,
-		GroupID:  cfg.kafkaGroupId,
-		MinBytes: 1,    // 10B
-		MaxBytes: 10e3, // 10KB
-		MaxWait:  cfg.kafkaMaxWait,
+		Brokers:          []string{cfg.kafkaAddr},
+		Topic:            cfg.kafkaTopic,
+		GroupID:          cfg.kafkaGroupId,
+		MinBytes:         1,                    // 10B
+		MaxBytes:         10e3,                 // 10KB
+		MaxWait:          1 * time.Millisecond, //cfg.kafkaMaxWait,
+		ReadBatchTimeout: 1 * time.Millisecond, //cfg.kafkaMaxWait,
+		ReadLagInterval:  1 * time.Millisecond, //cfg.kafkaMaxWait,
 	}
 
 	// declare err variable here so DBConn won't be shadowed
@@ -100,6 +108,11 @@ func main() {
 	} else {
 		log.Printf("Connected to database at %s:%s", cfg.dbConfig.Host, cfg.dbConfig.Port)
 	}
+
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "ok")
+	})
+	go http.ListenAndServe(fmt.Sprintf(":%s", cfg.httpPort), nil)
 
 	wg.Add(2)
 	w := job.New(kafkaCfg)

@@ -572,6 +572,7 @@ dependencies = [
  "futures",
  "futures-util",
  "jito-protos",
+ "lazy_static",
  "log",
  "prost",
  "rand 0.8.5",

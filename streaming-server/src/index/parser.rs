@@ -3,7 +3,6 @@ use std::println as info;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use crate::ldb::solana_instructions::{ContainsPredicate, EqPredicate, GtPredicate, InPredicate, LtPredicate, Predicate};
 
 #[derive(Debug, Clone)]
 pub struct IndexConfigurationUnparsed {
@@ -23,18 +22,6 @@ pub enum IndexFilterPredicate {
     IN { value: Vec<Value> },
     #[serde(rename(deserialize = "contains", serialize = "contains"))]
     CONTAINS { value: Vec<Value> },
-}
-
-impl IndexFilterPredicate {
-    pub fn to_predicate(&self) -> Box<dyn Predicate<Value>> {
-        match self {
-            IndexFilterPredicate::LT { value } => Box::new(LtPredicate { threshold: value.clone() }),
-            IndexFilterPredicate::GT { value } => Box::new(GtPredicate { threshold: value.clone() }),
-            IndexFilterPredicate::EQ { value } => Box::new(EqPredicate { target: value.clone() }),
-            IndexFilterPredicate::IN { value } => Box::new(InPredicate { set: value.clone() }),
-            IndexFilterPredicate::CONTAINS { value } => Box::new(ContainsPredicate { elements: value.clone() }),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -57,28 +44,6 @@ pub struct IndexConfigurationDTO {
     pub columns: Vec<String>,
     pub filters: Vec<IndexFilterEntity>,
 }
-
-/* example:
-    vec![IndexConfiguration {
-        name: String::from("test"),
-        table_name: String::from("mich_test"),
-        columns: vec![String::from("block_slot"), String::from("program_id")],
-        filters: vec![
-            IndexFilterEntity {
-                column: String::from("block_slot"),
-                predicates: vec![IndexFilterPredicate::GT {value: String::from("111792")}]
-            },
-            IndexFilterEntity {
-                column: String::from("program_id"),
-                predicates: vec![IndexFilterPredicate::IN {value: vec![String::from("11111111111111111111111111111111")]}]
-            },
-            IndexFilterEntity {
-                column: String::from("account_arguments"),
-                predicates: vec![IndexFilterPredicate::CONTAINS {value: String::from("72i21TqCQw6oTGULXHNmuHkyrzyjbsGVdem1f4mUnAMJ")}]
-            },
-        ]
-    }]
-     */
 
 #[test]
 fn test_parsing() {

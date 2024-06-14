@@ -1,24 +1,24 @@
 use std::sync::Arc;
 
 use actix_web::{App, Error, HttpResponse, HttpServer, web};
-use actix_web::error::UrlencodedError::ContentType;
-use actix_web::web::Bytes;
+use log::info;
 use serde::Deserialize;
+use serde_json::Value::Null;
 use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
-use tokio::task::spawn_blocking;
 use uuid::Uuid;
+
 use astraline_streaming_server::Result;
+
 use crate::idl::idl::IDLDownloader;
 use crate::index::middleware::ApiKeyMiddleware;
 use futures::executor::block_on;
 use serde_json::json;
 use serde_json::Value::Null;
 use crate::index::parser::IndexFilterPredicate::EQ;
-
 use crate::ldb::solana_instructions;
 
-use super::parser::{IndexConfiguration, IndexConfigurationDTO, IndexFilterPredicate};
+use super::parser::{IndexConfiguration, IndexConfigurationDTO};
 
 #[derive(Clone)]
 struct DataWrapper {
@@ -66,7 +66,7 @@ impl IndexerHttpServer {
     }
     pub async fn start(&self, db: DataWrapper) {
         let addr = format!("127.0.0.1:{}", self.port);
-        println!("starting http server at http://{0}:{1}", "localhost", self.port);
+        info!("starting http server at http://{0}:{1}", "localhost", self.port);
         let server = HttpServer::new(move || {
             App::new()
                 .app_data(web::Data::new(db.clone()))

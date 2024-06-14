@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{App, Error, HttpResponse, HttpServer, web};
+use actix_web::{App, Error, error, HttpResponse, HttpServer, web};
 use log::info;
 use serde::Deserialize;
 use serde_json::Value::Null;
@@ -16,6 +16,7 @@ use futures::executor::block_on;
 use serde_json::json;
 use crate::index::parser::IndexFilterPredicate::EQ;
 use crate::ldb::solana_instructions;
+use crate::ldb::solana_instructions::is_custom_column;
 
 use super::parser::{IndexConfiguration, IndexConfigurationDTO};
 
@@ -99,9 +100,6 @@ impl IndexerHttpServer {
         mut raw_data: web::Json<IndexConfigurationDTO>,
         data: web::Data<DataWrapper>,
     ) -> std::result::Result<HttpResponse, Error> {
-
-
-
         let access_key = Uuid::new_v4();
         let access_key_underscored = access_key.to_string().replace("-", "_");
 
@@ -146,7 +144,9 @@ impl IndexerHttpServer {
             return Ok(HttpResponse::InternalServerError().finish())
         }
 
-        maybe_store_idl(data.idl_downloader.clone(), &json_config).await.unwrap();
+        if let Err(err) = maybe_store_idl(data.idl_downloader.clone(), &json_config).await {
+            return Err(error::ErrorBadRequest(err))
+        }
 
         let mut configs = data.index_configs.lock().await;
         configs.push(raw_data);
@@ -174,8 +174,15 @@ async fn maybe_store_idl(idl_downloader: Arc<Mutex<IDLDownloader>>, json_config:
         if let Some(eq_predicate) = eq_predicate {
             let program_pubkey = eq_predicate.as_array().unwrap()[0].as_str().unwrap();
 
-            if let Ok(program_idl) = idl_downloader.download_idl(program_pubkey).await {
-                idl_downloader.store_idl(program_pubkey, &program_idl).await.unwrap();
+            // download idl only of
+            let custom_filter_exists = config.filters.iter().find(|filter| { is_custom_column(&filter.column) }).is_some();
+            let custom_column_exists = config.columns.iter().find(|column| { is_custom_column(&column) }).is_some();
+            if custom_filter_exists || custom_column_exists {
+                if let Ok(program_idl) = idl_downloader.download_idl(program_pubkey).await {
+                    idl_downloader.store_idl(program_pubkey, &program_idl).await.unwrap();
+                } else {
+                    return Err(format!("Can't find idl for program {program_pubkey}"))
+                }
             }
         }
     }

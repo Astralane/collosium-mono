@@ -52,12 +52,12 @@ Create new topic (set number of partitions more or equal to the number of worker
 docker-compose exec -it kafka /bin/kafka-topics --create --topic geyser-to-workers --partitions 2 --replication-factor 1 --bootstrap-server kafka:29092
 ```
 
-Send message to `geyser-to-workers` topic
+Listen for messages from `geyser-to-workers` topic
 ```
 docker-compose exec -it kafka /bin/kafka-console-consumer --topic geyser-to-workers --from-beginning --bootstrap-server kafka:29092
 ```
 
-Listen for messages from `geyser-to-workers` topic
+Send message to `geyser-to-workers` topic
 ```
 docker-compose exec -it kafka /bin/kafka-console-producer --topic geyser-to-workers --broker-list kafka:29092
 ```

@@ -37,6 +37,7 @@ pub(crate) fn column_type(column_name: &str) -> Result<String> {
 fn match_others(column_name: &str) -> Result<String> {
     match get_pattern(column_name) {
         "account_*" => Ok(String::from("text")),
+        "arg_*" => Ok(String::from("text")),
         "instruction_name" => Ok(String::from("text")),
         _ => Err(format!("Unknown column name {column_name}")),
     }
@@ -45,7 +46,10 @@ fn match_others(column_name: &str) -> Result<String> {
 fn get_pattern(column_name: &str) -> &str {
     if column_name.starts_with("account_") {
         "account_*"
-    } else {
+    } else if column_name.starts_with("arg_") {
+        "arg_*"
+    }
+     else {
         column_name
     }
 }

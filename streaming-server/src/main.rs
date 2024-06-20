@@ -29,7 +29,7 @@ struct Args {
     #[arg(long, env, default_value = "localhost:20000")]
     bind_address: String,
 
-    #[arg(long, env, default_value = "http://localhost:3000")]
+    #[arg(long, env, default_value = "http://localhost:3002")]
     admin_server_url: String,
 
     #[arg(long, env, default_value = "http://localhost:10000")]
@@ -41,7 +41,7 @@ struct Args {
     #[arg(long, env, default_value = "http://localhost:8899")]
     rpc_url: String,
 
-    #[arg(long, env, default_value = "localhost:5432")]
+    #[arg(long, env, default_value = "localhost:5434")]
     db_address: String,
 
     #[arg(long, env, default_value = "postgres")]

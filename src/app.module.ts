@@ -4,9 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 import { DynamicGraphqlModule } from './dynamic-graphql/dynamic-graphql.module';
-import { TablesModule } from './tables/tables.module';
 import { configDotenv } from 'dotenv';
 import { AuthModule } from './auth/auth.module';
+import { IndexModule } from './index/index.module';
 
 configDotenv();
 
@@ -27,7 +27,7 @@ configDotenv();
       autoLoadEntities: true,
     }),
     DynamicGraphqlModule,
-    TablesModule,
+    IndexModule,
     AuthModule,
   ],
 })

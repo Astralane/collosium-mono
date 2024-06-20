@@ -115,7 +115,7 @@ export class DynamicGraphqlService {
     const query = `
       SELECT table_name
       FROM index_configuration
-      WHERE access_key = $1
+      WHERE index_id = $1
     `;
     const result = await this.connection.query(query, [id]);
     return result.length ? result[0].table_name : null;

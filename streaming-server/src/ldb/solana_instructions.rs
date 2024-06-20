@@ -1,7 +1,7 @@
+use astraline_streaming_server::Result;
+use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::hash::Hash;
-use lazy_static::lazy_static;
-use astraline_streaming_server::Result;
 
 lazy_static! {
     static ref STANDARD_COLUMNS: HashMap<String, String> = {
@@ -48,8 +48,7 @@ fn get_pattern(column_name: &str) -> &str {
         "account_*"
     } else if column_name.starts_with("arg_") {
         "arg_*"
-    }
-     else {
+    } else {
         column_name
     }
 }

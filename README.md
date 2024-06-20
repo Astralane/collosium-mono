@@ -17,10 +17,13 @@ docker run \
 
 ### 2. Configure .env
 
-Clone `.env.example` file to the `.env` file and fill out variables
+Create .env file. 
+To run on local machine provide the next variables:
+MONGODB_URL=mongodb://admin:secret@host.docker.internal:27017/admin-service?authSource=admin
+PORT=3001
 
-### 3. Run 
-
+### 3. Start in Docker
 ```
-npm start
+docker build -t admin_service .
+docker run --env-file .env -p 3001:3001 admin_service
 ```

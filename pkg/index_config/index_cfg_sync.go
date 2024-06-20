@@ -9,10 +9,10 @@ import (
 	"github.com/astraline/astraline-filtering-service/pkg/database"
 )
 
-const getCfgsQuery = "SELECT access_key, json_config FROM index_configuration"
+const getCfgsQuery = "SELECT index_id, json_config FROM index_configuration"
 
 type FetchedIndexCfg struct {
-	AccessKey  string `db:"access_key"`
+	AccessKey  string `db:"index_id"`
 	JsonConfig []byte `db:"json_config"`
 }
 

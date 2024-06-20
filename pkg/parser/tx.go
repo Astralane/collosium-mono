@@ -16,16 +16,20 @@ type CustomInstructionColumn struct {
 }
 
 type InstructionData struct {
-	slot              uint64
-	tx_id             string
-	txIdx             uint64
-	accountKeys       []string
-	programId         string
-	isInner           bool
-	accounts          []string
-	data              []byte
-	txSuccess         bool
-	txSigner          string
+	slot                  uint64
+	tx_id                 string
+	txIdx                 uint64
+	accountKeys           []string
+	programId             string
+	isInner               bool
+	outerInstructionIndex int64
+	innerInstructionIndex int64
+	stackHeight           uint32
+	accounts              []string
+	data                  []byte
+	txSuccess             bool
+	txSigner              string
+
 	additionalColumns []CustomInstructionColumn
 }
 
@@ -51,43 +55,53 @@ func ProcessKafkaMsg(msg kafka.Message) {
 
 	accountKeys := parseAccountKeys(message.GetAccountKeys())
 
-	for _, ins := range insts {
+	for idx, ins := range insts {
 		accounts := parseAccounts(ins.GetAccounts(), accountKeys)
 
 		instData := InstructionData{
-			slot:        tx.GetSlot(),
-			tx_id:       signature,
-			txIdx:       tx.GetTxIdx(),
-			accountKeys: accountKeys,
-			programId:   accountKeys[ins.GetProgramIdIndex()],
-			isInner:     false,
-			accounts:    accounts,
-			data:        ins.GetData(),
-			txSuccess:   len(meta.GetErr().GetErr()) == 0,
-			txSigner:    accounts[0],
+			slot:                  tx.GetSlot(),
+			tx_id:                 signature,
+			txIdx:                 tx.GetTxIdx(),
+			accountKeys:           accountKeys,
+			programId:             accountKeys[ins.GetProgramIdIndex()],
+			isInner:               false,
+			innerInstructionIndex: -1,
+			outerInstructionIndex: int64(idx + 1),
+			stackHeight:           1,
+			accounts:              accounts,
+			data:                  ins.GetData(),
+			txSuccess:             len(meta.GetErr().GetErr()) == 0,
+			txSigner:              accounts[0],
 		}
 		go processInstruction(instData)
-	}
 
-	for _, innerInsts := range meta.InnerInstructions {
-		for _, ins := range innerInsts.Instructions {
-			accounts := parseAccounts(ins.GetAccounts(), accountKeys)
+		if len(meta.InnerInstructions) < idx {
+			continue
+		}
+
+		innerInsts := meta.InnerInstructions[idx]
+		for innerIdx, innerIns := range innerInsts.Instructions {
+			accounts := parseAccounts(innerIns.GetAccounts(), accountKeys)
 
 			instData := InstructionData{
-				slot:        tx.GetSlot(),
-				tx_id:       signature,
-				txIdx:       tx.GetTxIdx(),
-				accountKeys: accountKeys,
-				programId:   accountKeys[ins.GetProgramIdIndex()],
-				isInner:     false,
-				accounts:    accounts,
-				data:        ins.GetData(),
-				txSuccess:   len(meta.GetErr().GetErr()) == 0,
-				txSigner:    accounts[0],
+				slot:                  tx.GetSlot(),
+				tx_id:                 signature,
+				txIdx:                 tx.GetTxIdx(),
+				accountKeys:           accountKeys,
+				programId:             accountKeys[innerIns.GetProgramIdIndex()],
+				isInner:               true,
+				innerInstructionIndex: int64(innerIdx + 1),
+				outerInstructionIndex: int64(idx + 1),
+				stackHeight:           innerIns.GetStackHeight(),
+				accounts:              accounts,
+				data:                  innerIns.GetData(),
+				txSuccess:             len(meta.GetErr().GetErr()) == 0,
+				txSigner:              accounts[0],
 			}
 			go processInstruction(instData)
 		}
 	}
+
 }
 
 func parseAccountKeys(accountKeys [][]byte) []string {

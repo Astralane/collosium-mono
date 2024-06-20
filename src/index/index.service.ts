@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { IndexConfiguration } from './entity/index-configuration.entity';
 import { IndexConfigurationDTO } from './dto/index-configuration.dto';
 import { config } from 'dotenv';
+import { plainToClass, plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class IndexService {
@@ -16,9 +17,11 @@ export class IndexService {
     const indexes = await this.indexConfigurationRepository.findBy([{
       api_key: key
     }]);
-    return indexes.map(index => ({
+    const formattedIndexes = indexes.map(index => ({
       ...index,
       json_config: JSON.parse(index.json_config)
     }))
+
+    return plainToInstance(IndexConfigurationDTO, formattedIndexes, { excludeExtraneousValues: true });
   }
 }

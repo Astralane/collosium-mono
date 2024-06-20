@@ -1,24 +1,21 @@
-import { Field, HideField, ObjectType } from '@nestjs/graphql';
-import { Exclude } from 'class-transformer';
-import GraphQLJSON, { GraphQLJSONObject } from 'graphql-type-json';
+import { Exclude, Expose } from 'class-transformer';
 
-@ObjectType()
 export class IndexConfigurationDTO {
-  @HideField()
+  @Exclude()
   id: number;
 
-  @HideField()
+  @Exclude()
   table_name: string;
 
-  @Field({})
+  @Expose()
   index_id: string;
 
-  @Field(() => GraphQLJSONObject)
+  @Expose()
   json_config: any;
 
-  @HideField()
+  @Exclude()
   last_updated_slot: string;
 
-  @HideField()
+  @Exclude()
   api_key: string;
 }

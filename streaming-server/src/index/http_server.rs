@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{App, Error, error, HttpResponse, HttpServer, web};
+use actix_web::{error, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer};
 use log::info;
 use serde::Deserialize;
 use serde_json::Value::Null;
@@ -99,13 +99,16 @@ impl IndexerHttpServer {
     async fn create_new_index(
         mut raw_data: web::Json<IndexConfigurationDTO>,
         data: web::Data<DataWrapper>,
+        req: HttpRequest,
     ) -> std::result::Result<HttpResponse, Error> {
-        let access_key = Uuid::new_v4();
-        let access_key_underscored = access_key.to_string().replace("-", "_");
+        let index_id = Uuid::new_v4();
+        let index_id_underscored = index_id.to_string().replace("-", "_");
+        let api_key = req.extensions().get::<String>().cloned().unwrap_or_default();
+        // println!("API Key: {}", api_key);
 
         let raw_data = IndexConfiguration {
             name: std::mem::replace(&mut raw_data.name, String::new()),
-            table_name: format!("index_{access_key_underscored}"),
+            table_name: format!("index_{index_id_underscored}"),
             columns: std::mem::replace(&mut raw_data.columns, vec![]),
             filters: std::mem::replace(&mut raw_data.filters, vec![]),
         };
@@ -114,12 +117,13 @@ impl IndexerHttpServer {
         let mut connection = data.db.lock().await.acquire().await.unwrap();
         // raw_data.table_name = format!("index_{access_key_underscored}");
         let res = sqlx::query(
-            "insert into index_configuration (access_key, table_name, json_config) \
-                    values ($1, $2, $3)",
+            "insert into index_configuration (index_id, table_name, json_config, api_key) \
+                    values ($1, $2, $3, $4)",
         )
-            .bind(access_key)
+            .bind(index_id)
             .bind(&raw_data.table_name)
             .bind(sqlx::types::Json(json_config.clone()))
+            .bind(api_key)
             .execute(&mut connection)
             .await;
 
@@ -151,7 +155,7 @@ impl IndexerHttpServer {
         let mut configs = data.index_configs.lock().await;
         configs.push(raw_data);
 
-        Ok(HttpResponse::Ok().json(format!("{}", access_key)))
+        Ok(HttpResponse::Ok().json(format!("{}", index_id)))
     }
 }
 

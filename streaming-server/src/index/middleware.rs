@@ -1,5 +1,6 @@
 use std::future::{ready, Ready};
 use std::rc::Rc;
+use actix_web::HttpMessage;
 use actix_web::{dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform}, Error, HttpResponse};
 use actix_web::body::{EitherBody, BoxBody};
 use futures_util::future::LocalBoxFuture;
@@ -72,6 +73,7 @@ where
                 let api_key_valid = check_api_key(&server_url, &api_key).await;
                 if api_key_valid {
                     let req = ServiceRequest::from_parts(http_req, payload);
+                    req.extensions_mut().insert(api_key);
                     let res = service.call(req).await?;
                     Ok(res.map_into_left_body())
                 } else {

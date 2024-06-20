@@ -2,10 +2,16 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-type TableDTO {
-  tableName: String!
+type IndexConfigurationDTO {
+  index_id: String!
+  json_config: JSONObject!
 }
 
+"""
+The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSONObject
+
 type Query {
-  getTables: [TableDTO!]!
+  indexes: [IndexConfigurationDTO!]!
 }

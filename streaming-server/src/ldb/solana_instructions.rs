@@ -15,13 +15,23 @@ lazy_static! {
         m.insert(String::from("account_arguments"), String::from("text"));
         m.insert(String::from("tx_signer"), String::from("text"));
         m.insert(String::from("tx_success"), String::from("text"));
+        m.insert(
+            String::from("outer_instruction_index"),
+            String::from("bigint"),
+        );
+        m.insert(
+            String::from("inner_instruction_index"),
+            String::from("bigint"),
+        );
+        m.insert(String::from("stack_height"), String::from("int"));
+
         m
     };
 }
 
 pub(crate) fn is_custom_column(column_name: &str) -> bool {
     if let Some(_) = STANDARD_COLUMNS.get(column_name) {
-        return false
+        return false;
     }
     true
 }

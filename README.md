@@ -10,7 +10,7 @@ docker run \
   --name mongodb \
   -e MONGO_INITDB_ROOT_USERNAME=admin \
   -e MONGO_INITDB_ROOT_PASSWORD=secret \
-  -p 27017:27017 \
+  -p 27019:27017 \
   mongo
 ```
 
@@ -20,12 +20,12 @@ docker run \
 Create .env file. 
 To run on local machine provide the next variables:
 ```
-MONGODB_URL=mongodb://admin:secret@host.docker.internal:27017/admin-service?authSource=admin
-PORT=3001
+MONGODB_URL=mongodb://admin:secret@host.docker.internal:27019/admin-service?authSource=admin
+PORT=3002
 ```
 
 ### 3. Start in Docker
 ```
 docker build -t admin_service .
-docker run --env-file .env -p 3001:3001 admin_service
+docker run --env-file .env -p 3002:3002 admin_service
 ```

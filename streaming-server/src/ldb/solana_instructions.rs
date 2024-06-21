@@ -1,7 +1,7 @@
+use astraline_streaming_server::Result;
+use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::hash::Hash;
-use lazy_static::lazy_static;
-use astraline_streaming_server::Result;
 
 lazy_static! {
     static ref STANDARD_COLUMNS: HashMap<String, String> = {
@@ -15,13 +15,23 @@ lazy_static! {
         m.insert(String::from("account_arguments"), String::from("text"));
         m.insert(String::from("tx_signer"), String::from("text"));
         m.insert(String::from("tx_success"), String::from("text"));
+        m.insert(
+            String::from("outer_instruction_index"),
+            String::from("bigint"),
+        );
+        m.insert(
+            String::from("inner_instruction_index"),
+            String::from("bigint"),
+        );
+        m.insert(String::from("stack_height"), String::from("int"));
+
         m
     };
 }
 
 pub(crate) fn is_custom_column(column_name: &str) -> bool {
     if let Some(_) = STANDARD_COLUMNS.get(column_name) {
-        return false
+        return false;
     }
     true
 }
@@ -37,6 +47,7 @@ pub(crate) fn column_type(column_name: &str) -> Result<String> {
 fn match_others(column_name: &str) -> Result<String> {
     match get_pattern(column_name) {
         "account_*" => Ok(String::from("text")),
+        "arg_*" => Ok(String::from("text")),
         "instruction_name" => Ok(String::from("text")),
         _ => Err(format!("Unknown column name {column_name}")),
     }
@@ -45,6 +56,8 @@ fn match_others(column_name: &str) -> Result<String> {
 fn get_pattern(column_name: &str) -> &str {
     if column_name.starts_with("account_") {
         "account_*"
+    } else if column_name.starts_with("arg_") {
+        "arg_*"
     } else {
         column_name
     }

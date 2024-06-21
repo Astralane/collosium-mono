@@ -2,10 +2,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-type TableDTO {
-  tableName: String!
-}
-
 type Query {
-  getTables: [TableDTO!]!
+  indexes: [String!]!
 }

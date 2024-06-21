@@ -45,7 +45,7 @@ func init() {
 		"postgres db password")
 	flag.StringVar(&dbConfig.Host, "db-host", getenv("DB_HOST", "localhost"),
 		"postgres db host")
-	flag.StringVar(&dbConfig.Port, "db-port", getenv("DB_PORT", "5432"),
+	flag.StringVar(&dbConfig.Port, "db-port", getenv("DB_PORT", "5434"),
 		"postgres db port")
 	flag.StringVar(&dbConfig.SslMode, "db-sslmode", getenv("DB_SSLMODE", "disable"),
 		"postgres db ssl mode")

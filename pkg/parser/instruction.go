@@ -14,6 +14,7 @@ import (
 	"github.com/btcsuite/btcutil/base58"
 
 	"github.com/astraline/astraline-filtering-service/pkg/database"
+	"github.com/astraline/astraline-filtering-service/pkg/utils"
 
 	"github.com/astraline/astraline-filtering-service/pkg/index_config"
 
@@ -36,14 +37,17 @@ func checkIndexAndInsert(instData InstructionData, indexConfig index_config.Inde
 	result := true
 
 	standardColumns := map[string]bool{
-		"block_slot": true,
-		"signature":  true,
-		"tx_id":      true,
-		"program_id": true,
-		"is_inner":   true,
-		"accounts":   true,
-		"data":       true,
-		"tx_success": true,
+		"block_slot":              true,
+		"signature":               true,
+		"tx_id":                   true,
+		"program_id":              true,
+		"is_inner":                true,
+		"inner_instruction_index": true,
+		"outer_instruction_index": true,
+		"stack_height":            true,
+		"accounts":                true,
+		"data":                    true,
+		"tx_success":              true,
 	}
 
 	idl := maybeLoadIDL(instData.programId, indexConfig, standardColumns)
@@ -71,7 +75,14 @@ func checkIndexAndInsert(instData InstructionData, indexConfig index_config.Inde
 			case "tx_success":
 				result, _ = index_config.ApplyPredicate(predicate, []string{strconv.FormatBool(instData.txSuccess)})
 			default:
-				result, _ = applyWithIdl(instData, filter.Column, predicate, idl)
+				var err error
+				result, err = applyWithIdl(instData, filter.Column, predicate, idl)
+				if err != nil {
+					log.Printf("ERROR: instruction not found\n")
+					log.Print("idl: ")
+					log.Println(idl)
+					log.Printf("instData: %+v\n", instData)
+				}
 			}
 
 			if !result {
@@ -113,14 +124,14 @@ func loadIDL(programPubkey string) (map[string]interface{}, error) {
 		// TODO: fix it
 		// panic(err)
 	}
-	// var dataString string
-	// err = json.Unmarshal(data, &dataString)
-	// if err != nil {
-	// 	return nil, errors.New("error parsing JSON")
-	// }
+	var dataString string
+	err = json.Unmarshal(data, &dataString)
+	if err != nil {
+		return nil, errors.New("error parsing JSON")
+	}
 
 	var dynamicJsonData map[string]interface{}
-	err = json.Unmarshal(data, &dynamicJsonData)
+	err = json.Unmarshal([]byte(dataString), &dynamicJsonData)
 	if err != nil {
 		return nil, errors.New("error parsing JSON")
 	}
@@ -137,7 +148,10 @@ func applyWithIdl(
 		return false, nil
 	}
 
-	instruction, _ := getInstruction(instData.data, idl)
+	instruction, err := getInstruction(instData.data, idl)
+	if err != nil {
+		return false, err
+	}
 
 	if column == "instruction_name" {
 		return index_config.ApplyPredicate(predicate, []string{instruction["name"].(string)})
@@ -212,6 +226,7 @@ func getInstruction(data []byte, idl map[string]interface{}) (map[string]interfa
 			if !ok {
 				continue
 			}
+			instructionName = utils.ToSnakeCase(instructionName)
 			hash := sha256.Sum256([]byte(fmt.Sprintf("global:%s", instructionName)))
 
 			if bytes.Equal(data[:8], hash[:8]) {
@@ -279,6 +294,17 @@ func executeQuery(query string, data InstructionData, columns []string) {
 			params = append(params, data.programId)
 		case "is_inner":
 			params = append(params, data.isInner)
+		case "inner_instruction_index":
+			idx := data.innerInstructionIndex
+			if idx == -1 {
+				params = append(params, nil)
+			} else {
+				params = append(params, idx)
+			}
+		case "outer_instruction_index":
+			params = append(params, data.outerInstructionIndex)
+		case "stack_height":
+			params = append(params, data.stackHeight)
 		case "accounts":
 			params = append(params, data.accounts)
 		case "data":
@@ -345,6 +371,17 @@ func getAccountPubKey(accountName string, pd map[string]any, rcvdAccounts []stri
 	return dbDefault
 }
 
+func getPrefix(c string) string {
+	if strings.HasPrefix(c, "account_") {
+		return "account_"
+	}
+	if strings.HasPrefix(c, "arg_") {
+		return "arg_"
+	}
+	return ""
+}
+
+
 func getArgumentValue(argName string, parsedData map[string]interface{}) interface{} {
 	argsValues, ok := parsedData["args_values"].(map[string]interface{})
 	if !ok {
@@ -393,14 +430,4 @@ func extractArgsValues(data []byte, args []interface{}) map[string]interface{} {
 		}
 	}
 	return argsValues
-}
-
-func getPrefix(c string) string {
-	if strings.HasPrefix(c, "account_") {
-		return "account_"
-	}
-	if strings.HasPrefix(c, "arg_") {
-		return "arg_"
-	}
-	return ""
 }

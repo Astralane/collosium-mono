@@ -104,7 +104,10 @@ func maybeLoadIDL(
 
 	for _, filter := range indexConfig.Filters {
 		if filter.Column == "program_id" {
-			var idl, _ = loadIDL(programPubkey)
+			var idl, err = loadIDL(programPubkey)
+			if err != nil {
+				log.Printf("Failed to load idl: %s", err)
+			}
 			return idl
 		}
 	}
@@ -124,14 +127,9 @@ func loadIDL(programPubkey string) (map[string]interface{}, error) {
 		// TODO: fix it
 		// panic(err)
 	}
-	var dataString string
-	err = json.Unmarshal(data, &dataString)
-	if err != nil {
-		return nil, errors.New("error parsing JSON")
-	}
 
 	var dynamicJsonData map[string]interface{}
-	err = json.Unmarshal([]byte(dataString), &dynamicJsonData)
+	err = json.Unmarshal(data, &dynamicJsonData)
 	if err != nil {
 		return nil, errors.New("error parsing JSON")
 	}
@@ -380,7 +378,6 @@ func getPrefix(c string) string {
 	}
 	return ""
 }
-
 
 func getArgumentValue(argName string, parsedData map[string]interface{}) interface{} {
 	argsValues, ok := parsedData["args_values"].(map[string]interface{})

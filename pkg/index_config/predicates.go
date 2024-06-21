@@ -2,7 +2,6 @@ package index_config
 
 import (
 	"errors"
-	"slices"
 	"strconv"
 )
 
@@ -84,14 +83,27 @@ func applyEQ(pred IndexFilterPredicate, other string) (bool, error) {
 }
 
 func applyIN(pred IndexFilterPredicate, other []string) (bool, error) {
-	return slices.Contains(other, pred.Value[0]), nil
+	result := containsAll(pred.Value, other)
+	return result, nil
 }
 
 func applyCONTAINS(pred IndexFilterPredicate, other []string) (bool, error) {
-	for _, v := range other {
-		if slices.Contains(pred.Value, v) {
-			return true, nil
+	result := containsAll(other, pred.Value)
+	return result, nil
+}
+
+func containsAll(slice1, slice2 []string) bool {
+	elementMap := make(map[string]bool)
+
+	for _, element := range slice1 {
+		elementMap[element] = true
+	}
+
+	for _, element := range slice2 {
+		if !elementMap[element] {
+			return false
 		}
 	}
-	return false, nil
+
+	return true
 }

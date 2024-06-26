@@ -1,33 +1,108 @@
 package parser
 
-import "testing"
+import (
+	"encoding/json"
+	"fmt"
+	"testing"
+)
 
-func testCfgParsing(t *testing.T) {
-}
+var dataSample = []byte{68, 104, 189, 107, 223, 22, 248, 87, 3, 0, 0, 0, 106, 111, 101, 4, 0, 0, 0, 115, 97, 105, 107, 20, 1, 6, 0, 0, 0, 49, 50, 51, 49, 50, 51, 2, 0, 0, 0, 5, 0, 0, 0, 72, 111, 109, 101, 114, 24, 9, 0, 0, 0, 72, 111, 109, 101, 114, 105, 116, 116, 97, 20}
+var programPubKey string = "4Sw3JdbtpW7xN9Rw4UbVY19o2v1LyoCvebnKPFu5fDr3"
 
-var jsonSample = `{
-    "name": "All Memos from 09:10:00 to 09:11:40",
-    "table_name": "test_table",
-    "columns": [
-        "block_slot",
-        "tx_id",
-        "tx_index",
-        "program_id",
-        "is_inner",
-        "data",
-        "account_arguments",
-        "tx_signer",
-        "tx_success"
-    ],
-    "filters": [
+var idlSample string = `{
+  "version": "0.1.0",
+  "name": "custom_struct_as_arg",
+  "instructions": [
+    {
+      "name": "initialize",
+      "accounts": [],
+      "args": []
+    },
+    {
+      "name": "dox",
+      "accounts": [],
+      "args": [
         {
-            "column": "account_arguments",
-            "predicates": [
-                {
-                    "type": "lt",
-                    "value": ["4dv4puYib9XZXHrTN5csFxzfWKSmetTu1dLsJWNNV2XZ"]
-                }
-            ]
+          "name": "info",
+          "type": {
+            "defined": "Info"
+          }
+        },
+        {
+          "name": "age",
+          "type": "u8"
+        },
+        {
+          "name": "isHuman",
+          "type": "bool"
+        },
+        {
+          "name": "phoneNumber",
+          "type": "string"
+        },
+        {
+          "name": "familyMembers",
+          "type": {
+            "vec": {
+              "defined": "FamilyData"
+            }
+          }
         }
-    ]
-}`
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "Info",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "surname",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FamilyData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "age",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "address": "4Sw3JdbtpW7xN9Rw4UbVY19o2v1LyoCvebnKPFu5fDr3"
+  }
+}
+`
+
+func TestArgsParsing(t *testing.T) {
+	var idl map[string]interface{}
+	err := json.Unmarshal([]byte(idlSample), &idl)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inst, err := getInstruction(dataSample, idl)
+	if err != nil {
+		t.Logf("%+v\n", idl)
+		t.Fatal(err)
+	}
+
+	fmt.Printf("%+v\n", inst)
+}

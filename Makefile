@@ -4,6 +4,9 @@ run:
 build:
 	@go build main.go
 
+test:
+	@go test -v ./pkg/*
+
 proto:
 	@go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	@rm -rf protos-out

@@ -71,7 +71,7 @@ func ProcessKafkaMsg(msg kafka.Message) {
 			accounts:              accounts,
 			data:                  ins.GetData(),
 			txSuccess:             len(meta.GetErr().GetErr()) == 0,
-			txSigner:              accounts[0],
+			txSigner:              accountKeys[0],
 		}
 		go processInstruction(instData)
 
@@ -96,7 +96,7 @@ func ProcessKafkaMsg(msg kafka.Message) {
 				accounts:              accounts,
 				data:                  innerIns.GetData(),
 				txSuccess:             len(meta.GetErr().GetErr()) == 0,
-				txSigner:              accounts[0],
+				txSigner:              accountKeys[0],
 			}
 			go processInstruction(instData)
 		}

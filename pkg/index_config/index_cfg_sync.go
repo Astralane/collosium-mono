@@ -9,10 +9,11 @@ import (
 	"github.com/astraline/astraline-filtering-service/pkg/database"
 )
 
-const getCfgsQuery = "SELECT index_id, json_config FROM index_configuration"
+const getCfgsQuery = "SELECT index_id, table_name, json_config FROM index_configuration"
 
 type FetchedIndexCfg struct {
 	AccessKey  string `db:"index_id"`
+	TableName  string `db:"table_name"`
 	JsonConfig []byte `db:"json_config"`
 }
 
@@ -42,6 +43,7 @@ func syncWithDB() {
 	indexConfig := make([]IndexConfiguration, 0, len(rows))
 	for _, row := range rows {
 		parsed := parseJsonCfg(row.JsonConfig)
+		parsed.TableName = row.TableName
 		indexConfig = append(indexConfig, parsed)
 		//
 		//var parsedConfig FetchedIndexCfg

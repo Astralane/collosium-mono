@@ -106,7 +106,7 @@ func maybeLoadIDL(
 		if filter.Column == "program_id" {
 			var idl, err = loadIDL(programPubkey)
 			if err != nil {
-				log.Printf("Failed to load idl: %s", err)
+				log.Printf("Failed to load idl for program:%s ,ERROR:%s", programPubkey, err)
 			}
 			return idl
 		}

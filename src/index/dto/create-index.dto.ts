@@ -7,6 +7,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CustomColumnValidator } from '../validator/column.validator';
+import { IsProgramIdPredicate } from '../validator/program-id-predicate.validator';
 
 export class CreateIndexDTO {
   @IsString()
@@ -34,6 +35,10 @@ export class IndexFilter {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => IndexFilterPredicate)
+  @IsProgramIdPredicate({
+    each: true,
+    message: 'Predicate type for "program_id" must be "eq".',
+  })
   predicates: IndexFilterPredicate[];
 }
 
@@ -49,6 +54,5 @@ export class IndexFilterPredicate {
   @IsEnum(PredicateType, { each: true, always: true })
   type: PredicateType;
 
-  @IsArray()
   value: any[];
 }

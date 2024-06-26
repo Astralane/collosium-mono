@@ -5,7 +5,7 @@ import { IndexConfiguration } from './entity/index-configuration.entity';
 import { IndexConfigurationDTO } from './dto/index-configuration.dto';
 import { plainToInstance } from 'class-transformer';
 import { v4 as uuidv4 } from 'uuid';
-import { CreateIndexDTO } from './dto/create-index.dto';
+import { CreateIndexDTO, IndexFilter } from './dto/create-index.dto';
 import { IdlService } from 'src/idl/idl.service';
 import { isCustomColumn } from './constants/columns';
 
@@ -84,7 +84,7 @@ export class IndexService {
     return await this.indexConfigurationRepository.save(config);
   }
 
-  private async handleIdl(programIdFilter): Promise<void> {
+  private async handleIdl(programIdFilter: IndexFilter): Promise<void> {
     const programPubkey = programIdFilter.predicates[0].value[0];
     if (programPubkey === '11111111111111111111111111111111') {
       return;

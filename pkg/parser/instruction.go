@@ -394,7 +394,6 @@ func getArgumentValue(argName string, parsedData map[string]interface{}) interfa
 	}
 
 	if value, exists := argsValues[argName]; exists {
-		log.Println(value)
 		return value
 	}
 

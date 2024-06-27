@@ -49,6 +49,12 @@ func extractPrimitive(data []byte, offset int, argType string) (interface{}, int
 		} else {
 			return binary.LittleEndian.Uint64(data[offset : offset+8]), 8
 		}
+	case "u32":
+		if len(data[offset:]) < 4 {
+			return nil, 4
+		} else {
+			return binary.LittleEndian.Uint32(data[offset : offset+4]), 4
+		}
 	case "u8":
 		if len(data[offset:]) < 1 {
 			return nil, 1
@@ -75,18 +81,20 @@ func extractPrimitive(data []byte, offset int, argType string) (interface{}, int
 		} else {
 			return string(data[offset+n : offset+n+int(strLen)]), n + int(strLen)
 		}
+	case "bytes":
+		return extractVector(data, nil, offset, "u8")
 	}
 	return nil, 0
 }
 
 func extractNonPrimitive(data []byte, types []interface{}, offset int, argType map[string]interface{}) (interface{}, int) {
-	vec, ok := argType["vec"].(map[string]interface{})
+	vec, ok := argType["vec"]
 	if ok {
 		return extractVector(data, types, offset, vec)
 	}
-	arr, ok := argType["array"].([]interface{})
+	arr, ok := argType["array"]
 	if ok {
-		return extractArray(data, types, offset, arr[0].(string), arr[1].(int))
+		return extractArray(data, types, offset, arr)
 	}
 	obj, ok := argType["defined"].(string)
 	if ok {
@@ -95,21 +103,34 @@ func extractNonPrimitive(data []byte, types []interface{}, offset int, argType m
 	return nil, 0
 }
 
-// TODO: extract array
 func extractVector(data []byte, types []interface{}, offset int, argType interface{}) (string, int) {
-	res := make([]interface{}, 0)
-	len := binary.LittleEndian.Uint32(data[offset : offset+4])
+	res := make([]string, 0)
+	len := int(binary.LittleEndian.Uint32(data[offset : offset+4]))
 	var n int = 4
-	for i := uint32(0); i < len; i++ {
+	for i := 0; i < len; i++ {
 		val, n_i := extractValue(data, types, int(offset)+n, argType)
-		res = append(res, val)
+		res = append(res, fmt.Sprint(val))
 		n += n_i
 	}
-	return fmt.Sprint(res), n
+	return strings.Join(res, ", "), n
 }
 
-func extractArray(data []byte, types []interface{}, offset int, argType string, len int) ([]interface{}, int) {
-	panic("not implemented")
+func extractArray(data []byte, types []interface{}, offset int, argType interface{}) (string, int) {
+
+	res := make([]string, 0)
+
+	typeData := argType.([]interface{})
+	// idk why but it says that it should be float64
+	len := int(typeData[1].(float64))
+
+	var n int = 0
+	for i := 0; i < len; i++ {
+		val, n_i := extractValue(data, types, offset+n, typeData[0])
+		res = append(res, fmt.Sprint(val))
+		n += n_i
+	}
+
+	return strings.Join(res, ", "), n
 }
 
 func extractObject(data []byte, types []interface{}, offset int, typeName string) (string, int) {

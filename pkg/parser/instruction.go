@@ -178,7 +178,7 @@ func applyWithIdl(
 
 		argsValues, ok := instruction["args_values"].(map[string]interface{})
 		if ok {
-			if argValue, exists := argsValues[strings.ToLower(argColumn)]; exists {
+			if argValue, exists := argsValues[argColumn]; exists {
 				return index_config.ApplyPredicate(predicate, []string{fmt.Sprint(argValue)})
 			}
 		}

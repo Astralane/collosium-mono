@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-var dataSample = []byte{68, 104, 189, 107, 223, 22, 248, 87, 3, 0, 0, 0, 106, 111, 101, 4, 0, 0, 0, 115, 97, 105, 107, 20, 1, 6, 0, 0, 0, 49, 50, 51, 49, 50, 51, 2, 0, 0, 0, 5, 0, 0, 0, 72, 111, 109, 101, 114, 24, 9, 0, 0, 0, 72, 111, 109, 101, 114, 105, 116, 116, 97, 20}
+var dataSample = []byte{158, 246, 177, 28, 124, 97, 55, 174, 2, 0, 0, 0, 5, 0, 0, 0, 72, 111, 109, 101, 114, 24, 9, 0, 0, 0, 72, 111, 109, 101, 114, 105, 116, 116, 97, 20, 3, 0, 0, 0, 72, 105, 33, 3, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0}
 var programPubKey string = "4Sw3JdbtpW7xN9Rw4UbVY19o2v1LyoCvebnKPFu5fDr3"
 
 var idlSample string = `{
@@ -19,7 +19,7 @@ var idlSample string = `{
       "args": []
     },
     {
-      "name": "dox",
+      "name": "obj",
       "accounts": [],
       "args": [
         {
@@ -27,7 +27,13 @@ var idlSample string = `{
           "type": {
             "defined": "Info"
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "primitives",
+      "accounts": [],
+      "args": [
         {
           "name": "age",
           "type": "u8"
@@ -39,13 +45,46 @@ var idlSample string = `{
         {
           "name": "phoneNumber",
           "type": "string"
-        },
+        }
+      ]
+    },
+    {
+      "name": "vecs",
+      "accounts": [],
+      "args": [
         {
           "name": "familyMembers",
           "type": {
             "vec": {
               "defined": "FamilyData"
             }
+          }
+        },
+        {
+          "name": "favoriteBytes",
+          "type": "bytes"
+        },
+        {
+          "name": "favoriteNumbers",
+          "type": {
+            "vec": "u32"
+          }
+        }
+      ]
+    },
+    {
+      "name": "arrs",
+      "accounts": [],
+      "args": [
+        {
+          "name": "githubAccounts",
+          "type": {
+            "array": [
+              {
+                "defined": "GitHubInfo"
+              },
+              2
+            ]
           }
         }
       ]
@@ -64,6 +103,33 @@ var idlSample string = `{
           {
             "name": "surname",
             "type": "string"
+          },
+          {
+            "name": "location",
+            "type": {
+              "defined": "LocationInfo"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "LocationInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "city",
+            "type": "string"
+          },
+          {
+            "name": "postalCode",
+            "type": {
+              "array": [
+                "u8",
+                3
+              ]
+            }
           }
         ]
       }
@@ -79,6 +145,22 @@ var idlSample string = `{
           },
           {
             "name": "age",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GitHubInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "username",
+            "type": "string"
+          },
+          {
+            "name": "repos",
             "type": "u8"
           }
         ]

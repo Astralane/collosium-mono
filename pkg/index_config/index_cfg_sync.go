@@ -70,16 +70,10 @@ func syncWithDB() {
 }
 
 func parseJsonCfg(config []byte) IndexConfiguration {
-	var parsedToString string
-	err := json.Unmarshal(config, &parsedToString)
-	if err != nil {
-		log.Fatalf("cannot parse index configuration to string, ERROR: %s", err.Error())
-	}
-
 	var parsedToStruct IndexConfiguration
-	err = json.Unmarshal([]byte(parsedToString), &parsedToStruct)
+	err := json.Unmarshal(config, &parsedToStruct)
 	if err != nil {
-		log.Fatalf("cannot parse index configuration, ERROR: %s", err.Error())
+		log.Printf("cannot parse index configuration, ERROR: %s", err.Error())
 	}
 	return parsedToStruct
 }

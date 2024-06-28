@@ -401,7 +401,7 @@ func getArgumentValue(argName string, parsedData map[string]interface{}) interfa
 	}
 
 	if value, exists := argsValues[argName]; exists {
-		return value
+		return fmt.Sprint(value)
 	}
 
 	return dbDefault

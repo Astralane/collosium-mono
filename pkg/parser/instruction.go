@@ -15,6 +15,7 @@ import (
 	"github.com/astraline/astraline-filtering-service/pkg/database"
 	"github.com/astraline/astraline-filtering-service/pkg/utils"
 
+	anchoridl "github.com/BCH-labs/anchor-idl-go"
 	"github.com/astraline/astraline-filtering-service/pkg/index_config"
 
 	_ "github.com/astraline/astraline-filtering-service/protos-out"
@@ -200,15 +201,7 @@ func getInstruction(data []byte, idl map[string]interface{}) (map[string]interfa
 		return nil, errors.New("instructions not found in IDL")
 	}
 
-	instructionsCopy := make([]interface{}, len(instructions))
-	copy(instructionsCopy, instructions)
-
-	types, ok := idl["types"].([]interface{})
-	if !ok {
-		return nil, errors.New("types not found in IDL")
-	}
-
-	for _, instruction := range instructionsCopy {
+	for _, instruction := range instructions {
 		instructionMap, ok := instruction.(map[string]interface{})
 		if !ok {
 			continue
@@ -221,7 +214,13 @@ func getInstruction(data []byte, idl map[string]interface{}) (map[string]interfa
 				}
 
 				if bytes.Equal(data[:4], discriminatorBytes) {
-					argsValues := extractArgsValues(data[4:], instructionMap["args"].([]interface{}), types)
+					idlBytes, err := json.Marshal(idl)
+					idlJson := string(idlBytes)
+					argsValues, err := anchoridl.ParseData(data, idlJson)
+					if err != nil {
+						log.Printf("ERROR:%s", err)
+						return nil, err
+					}
 					instructionMap["args_values"] = argsValues
 					return instructionMap, nil
 				}
@@ -236,7 +235,15 @@ func getInstruction(data []byte, idl map[string]interface{}) (map[string]interfa
 			hash := sha256.Sum256([]byte(fmt.Sprintf("global:%s", instructionName)))
 
 			if bytes.Equal(data[:8], hash[:8]) {
-				instructionMap["args_values"] = extractArgsValues(data[8:], instructionMap["args"].([]interface{}), types)
+
+				idlBytes, err := json.Marshal(idl)
+				idlJson := string(idlBytes)
+				argsValues, err := anchoridl.ParseData(data, idlJson)
+				if err != nil {
+					log.Printf("ERROR:%s", err)
+					return nil, err
+				}
+				instructionMap["args_values"] = argsValues
 				return instructionMap, nil
 			}
 		}

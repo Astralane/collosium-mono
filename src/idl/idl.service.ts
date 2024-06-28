@@ -74,4 +74,16 @@ export class IdlService {
       .orUpdate(['idl'], ['program_pubkey'])
       .execute();
   }
+
+  async idlExists(programPubkey: string): Promise<boolean> {
+    const idl = await this.programIdlRepository.findOneBy({
+      program_pubkey: programPubkey,
+    });
+
+    if (!idl) {
+      return false;
+    }
+
+    return true;
+  }
 }

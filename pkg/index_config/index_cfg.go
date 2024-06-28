@@ -16,10 +16,9 @@ type IndexConfig struct {
 
 // {"name":"mich first index","table_name":"test_table","columns":[],"filters":[]}
 type IndexConfiguration struct {
-	Name      string              `json:"name"`
-	TableName string              `json:"table_name"`
 	Columns   []string            `json:"columns"`
 	Filters   []IndexFilterEntity `json:"filters"`
+	TableName string
 }
 
 type IndexFilterEntity struct {

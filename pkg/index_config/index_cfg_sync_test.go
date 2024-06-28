@@ -9,12 +9,6 @@ import (
 func testCfgParsing(t *testing.T) {
 	cfg := parseJsonCfg([]byte(jsonSample))
 
-	name := cfg.Name
-	assert.Equal(t, "Test name", name)
-
-	tableName := cfg.TableName
-	assert.Equal(t, "test_table", tableName)
-
 	filters := cfg.Filters
 	assert.Equal(t, expectedFilters, filters)
 

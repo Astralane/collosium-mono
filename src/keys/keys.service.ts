@@ -1,17 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Key } from './schemas/key.schema';
-import { Model } from 'mongoose';
+import { Key } from './entities/key.entity';
 import { CreateKeyDto } from './dto/create-key.dto';
 import { generateKey } from 'src/utils/crypto.utils';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class KeysService {
-  constructor(@InjectModel(Key.name) private readonly keyModel: Model<Key>) {}
+  constructor(
+    @InjectRepository(Key)
+    private readonly keyRepository: Repository<Key>,
+  ) {}
 
   async create(createKeyDto: CreateKeyDto): Promise<Key> {
-    const key = new this.keyModel(createKeyDto);
-    return await key.save();
+    const key = this.keyRepository.create(createKeyDto);
+    return await this.keyRepository.save(key);
   }
 
   async generate(): Promise<Key> {
@@ -21,18 +24,19 @@ export class KeysService {
       rpsLimit: 1000,
     };
 
-    return await new this.keyModel(createKeyDto).save();
+    const keyToSave = this.keyRepository.create(createKeyDto);
+    return await this.keyRepository.save(keyToSave);
   }
 
   async getOne(key: string): Promise<Key> {
-    return await this.keyModel.findOne({ key: key }).exec();
+    return await this.keyRepository.findOne({ where: { key } });
   }
 
   async findAll(): Promise<Key[]> {
-    return await this.keyModel.find().exec();
+    return await this.keyRepository.find();
   }
 
   async delete(key: string): Promise<void> {
-    return await this.keyModel.findOneAndDelete({ key });
+    await this.keyRepository.delete({ key });
   }
 }

@@ -24,4 +24,4 @@ COPY --from=build-app /usr/src/app/node_modules ./node_modules
 COPY --from=build-app /usr/src/app/dist ./dist
 COPY package.json ./
 
-CMD ["npm", "run", "start:prod"]
+CMD ["sh", "-c", "npm run migration:run && npm run start:prod"]

@@ -3,7 +3,6 @@ package parser
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 	"github.com/astraline/astraline-filtering-service/pkg/database"
 	"github.com/astraline/astraline-filtering-service/pkg/utils"
 
+	anchoridl "github.com/BCH-labs/anchor-idl-go"
 	"github.com/astraline/astraline-filtering-service/pkg/index_config"
 
 	_ "github.com/astraline/astraline-filtering-service/protos-out"
@@ -78,7 +78,7 @@ func checkIndexAndInsert(instData InstructionData, indexConfig index_config.Inde
 				var err error
 				result, err = applyWithIdl(instData, filter.Column, predicate, idl)
 				if err != nil {
-					log.Printf("ERROR: instruction not found\n")
+					log.Printf("ERROR: instruction not found err:%s\n", err)
 					log.Print("idl: ")
 					log.Println(idl)
 					log.Printf("instData: %+v\n", instData)
@@ -106,7 +106,7 @@ func maybeLoadIDL(
 		if filter.Column == "program_id" {
 			var idl, err = loadIDL(programPubkey)
 			if err != nil {
-				log.Printf("Failed to load idl: %s", err)
+				log.Printf("Failed to load idl for program:%s ,ERROR:%s", programPubkey, err)
 			}
 			return idl
 		}
@@ -214,13 +214,20 @@ func getInstruction(data []byte, idl map[string]interface{}) (map[string]interfa
 				}
 
 				if bytes.Equal(data[:4], discriminatorBytes) {
-					argsValues := extractArgsValues(data[4:], instructionMap["args"].([]interface{}))
+					idlBytes, err := json.Marshal(idl)
+					idlJson := string(idlBytes)
+					argsValues, err := anchoridl.ParseData(data, idlJson)
+					if err != nil {
+						log.Printf("ERROR:%s", err)
+						return nil, err
+					}
 					instructionMap["args_values"] = argsValues
 					return instructionMap, nil
 				}
 			}
 		} else {
 			instructionName, ok := instructionMap["name"].(string)
+
 			if !ok {
 				continue
 			}
@@ -228,7 +235,15 @@ func getInstruction(data []byte, idl map[string]interface{}) (map[string]interfa
 			hash := sha256.Sum256([]byte(fmt.Sprintf("global:%s", instructionName)))
 
 			if bytes.Equal(data[:8], hash[:8]) {
-				instructionMap["args_values"] = extractArgsValues(data[8:], instructionMap["args"].([]interface{}))
+
+				idlBytes, err := json.Marshal(idl)
+				idlJson := string(idlBytes)
+				argsValues, err := anchoridl.ParseData(data, idlJson)
+				if err != nil {
+					log.Printf("ERROR:%s", err)
+					return nil, err
+				}
+				instructionMap["args_values"] = argsValues
 				return instructionMap, nil
 			}
 		}
@@ -386,45 +401,8 @@ func getArgumentValue(argName string, parsedData map[string]interface{}) interfa
 	}
 
 	if value, exists := argsValues[argName]; exists {
-		return value
+		return fmt.Sprint(value)
 	}
 
 	return dbDefault
-}
-
-func extractArgsValues(data []byte, args []interface{}) map[string]interface{} {
-	argsValues := make(map[string]interface{})
-	offset := 0
-	for _, arg := range args {
-		argMap := arg.(map[string]interface{})
-		argName := argMap["name"].(string)
-		argType := argMap["type"].(string)
-
-		switch argType {
-		case "u64":
-			if len(data[offset:]) < 8 {
-				argsValues[argName] = nil
-			} else {
-				argsValues[argName] = binary.LittleEndian.Uint64(data[offset : offset+8])
-				offset += 8
-			}
-		case "publicKey":
-			if len(data[offset:]) < 32 {
-				argsValues[argName] = nil
-			} else {
-				argsValues[argName] = base58.Encode(data[offset : offset+32])
-				offset += 32
-			}
-		case "string":
-			strLen := binary.LittleEndian.Uint64(data[offset : offset+8])
-			offset += 8
-			if len(data[offset:]) < int(strLen) {
-				argsValues[argName] = nil
-			} else {
-				argsValues[argName] = string(data[offset : offset+int(strLen)])
-				offset += int(strLen)
-			}
-		}
-	}
-	return argsValues
 }

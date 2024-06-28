@@ -2,16 +2,12 @@
 
 ## Running
 
-### 1. Start MongoDB
+### 1. Start Postgres DB
 
 MongoDB required to run this server, use following command to start:
-```bash
-docker run \
-  --name mongodb \
-  -e MONGO_INITDB_ROOT_USERNAME=admin \
-  -e MONGO_INITDB_ROOT_PASSWORD=secret \
-  -p 27019:27017 \
-  mongo
+```
+docker run -p 5434:5432 --name postgres -e POSTGRES_PASSWORD=postgres -d postgres
+
 ```
 
 
@@ -20,8 +16,14 @@ docker run \
 Create .env file. 
 To run on local machine provide the next variables:
 ```
-MONGODB_URL=mongodb://admin:secret@host.docker.internal:27019/admin-service?authSource=admin
 PORT=3002
+DATABASE_HOST=host.docker.internal
+DATABASE_PORT=5434
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_NAME=postgres
+RPC_NODE_URL=http://127.0.0.1:8899
+
 ```
 
 ### 3. Start in Docker

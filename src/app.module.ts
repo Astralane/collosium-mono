@@ -23,7 +23,7 @@ configDotenv();
       username: process.env.POSTGRES_USER_NAME,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB_NAME,
-      synchronize: true,
+      synchronize: false,
       autoLoadEntities: true,
     }),
     DynamicGraphqlModule,

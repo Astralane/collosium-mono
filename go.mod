@@ -1,13 +1,14 @@
 module github.com/astraline/astraline-filtering-service
 
-go 1.22.3
+go 1.22.4
 
 require (
+	github.com/BCH-labs/anchor-idl-go v0.0.0-20240628124035-bc2b32e88e0e
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
 	github.com/segmentio/kafka-go v0.4.47
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.9.0
 	google.golang.org/protobuf v1.34.1
 )
 

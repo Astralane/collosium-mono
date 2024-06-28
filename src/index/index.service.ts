@@ -86,9 +86,12 @@ export class IndexService {
 
   private async handleIdl(programIdFilter: IndexFilter): Promise<void> {
     const programPubkey = programIdFilter.predicates[0].value[0];
-    if (programPubkey === '11111111111111111111111111111111') {
+
+    const idlExists = await this.idlService.idlExists(programPubkey);
+    if (idlExists) {
       return;
     }
+
     this.logger.log(`Downloading IDL for program pubkey: ${programPubkey}`);
     const idl = await this.idlService.downloadIdl(programPubkey);
     if (!idl) {

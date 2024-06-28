@@ -1,12 +1,15 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {Entity, Column, PrimaryColumn} from 'typeorm';
 
 @Entity('index_configuration')
 export class IndexConfiguration {
-  @PrimaryGeneratedColumn()
+  @PrimaryColumn()
   id: number;
 
   @Column({ type: 'text' })
   table_name: string;
+
+  @Column({ type: 'text' })
+  name: string;
 
   @Column({ type: 'uuid' })
   index_id: string;

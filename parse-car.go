@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/allegro/bigcache/v3"
+	"github.com/gagliardetto/solana-go"
 	"github.com/ipfs/go-cid"
 	carv2 "github.com/ipld/go-car/v2"
 	hugecache "github.com/rpcpool/yellowstone-faithful/huge-cache"
@@ -95,8 +97,27 @@ func parseIndex(
 		c.Context,
 		dr,
 		func(c cid.Cid, txNode *ipldbindcode.Transaction) error {
+			fmt.Println("found tx")
 
-			_, _, err := parseTransactionAndMetaFromNode(txNode, epoch.GetDataFrameByCid)
+			tx, meta, err := parseTransactionAndMetaFromNode(txNode, epoch.GetDataFrameByCid)
+
+			encodedTx, encodedMeta, err := encodeTransactionResponseBasedOnWantedEncoding(solana.EncodingJSONParsed, tx, meta)
+			if err != nil {
+				return fmt.Errorf("failed to encode transaction response: %w", err)
+			}
+			fmt.Println("encodedTx: ", encodedTx)
+			fmt.Println("encodedMeta: ", encodedMeta)
+
+			jsonTx, err := json.Marshal(encodedTx)
+			if err != nil {
+				return fmt.Errorf("failed marshal tx: %w", err)
+			}
+			fmt.Println("encodedTx: ", string(jsonTx))
+			jsonMeta, err := json.Marshal(encodedMeta)
+			if err != nil {
+				return fmt.Errorf("failed marshal meta: %w", err)
+			}
+			fmt.Println("encodedMeta: ", string(jsonMeta))
 
 			_, err = readFirstSignature(txNode.Data.Bytes())
 			if err != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 	"os"
+	"encoding/json"
 
 	"github.com/allegro/bigcache/v3"
 	"github.com/gagliardetto/solana-go"
@@ -128,10 +129,17 @@ func parseIndex(
 			}
 
 			instructions := ParseTx(tx, meta, uint64(txNode.Slot), uint64(**txNode.Index))
+			for _, inst := range instructions {
+				p, _ := json.Marshal(inst)
+				fmt.Printf("%s\n\n",string(p))
+			}
 
 			instCount += uint64(len(instructions))
 			txCount++
 			fmt.Fprintf(os.Stderr, "\rparsed %d instructions within %d transactions", instCount, txCount)
+			if txCount == 1000000 {
+				panic("done")
+			}
 
 			// encodedTx, encodedMeta, err := encodeTransactionResponseBasedOnWantedEncoding(solana.EncodingJSONParsed, tx, meta)
 			// if err != nil {

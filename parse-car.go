@@ -2,13 +2,16 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"time"
-	"os"
 	"encoding/json"
+	"fmt"
+	"os"
+	"time"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/allegro/bigcache/v3"
 	"github.com/gagliardetto/solana-go"
+	"github.com/google/uuid"
 	"github.com/ipfs/go-cid"
 	carv2 "github.com/ipld/go-car/v2"
 	"github.com/mr-tron/base58"
@@ -115,6 +118,11 @@ func parseIndex(
 
 	var instCount uint64 = 0
 	var txCount uint64 = 0
+	var instsSinceLastIns uint64 = 0
+	batch, conn, err := CreateBatch()
+	if err != nil {
+		panic(err)
+	}
 
 	// Iterate over all Transactions in the CAR file and put them into the index,
 	// using the transaction signature as the key and the CID as the value.
@@ -130,15 +138,35 @@ func parseIndex(
 
 			instructions := ParseTx(tx, meta, uint64(txNode.Slot), uint64(**txNode.Index))
 			for _, inst := range instructions {
-				p, _ := json.Marshal(inst)
-				fmt.Printf("%s\n\n",string(p))
+				// p, _ := json.Marshal(inst)
+				// fmt.Printf("%s\n\n", string(p))
+
+				err := batch.Append(
+					inst.Slot,
+					inst.Tx_id,
+					inst.TxIdx,
+					inst.AccountKeys,
+					inst.ProgramId,
+					inst.IsInner,
+					inst.OuterInstructionIndex,
+					inst.InnerInstructionIndex,
+					inst.StackHeight,
+					inst.Accounts,
+					inst.Data,
+					inst.TxSuccess,
+					inst.TxSigner,
+				)
+				if err != nil {
+					return nil
+				}
 			}
 
 			instCount += uint64(len(instructions))
 			txCount++
+			instsSinceLastIns += uint64(len(instructions))
 			fmt.Fprintf(os.Stderr, "\rparsed %d instructions within %d transactions", instCount, txCount)
-			if txCount == 1000000 {
-				panic("done")
+			if instsSinceLastIns >= 80000 {
+				batch = SendBatch(conn, batch)
 			}
 
 			// encodedTx, encodedMeta, err := encodeTransactionResponseBasedOnWantedEncoding(solana.EncodingJSONParsed, tx, meta)
@@ -329,4 +357,57 @@ func parseAccounts[AccType AccountIdxType](accounts []AccType, accountKeys []str
 		result = append(result, accountKeys[accountIndex])
 	}
 	return result
+}
+
+func CreateBatch() (driver.Batch, driver.Conn, error) {
+	conn, err := clickhouse.Open(&clickhouse.Options{
+		Addr: []string{fmt.Sprintf("%s:%d", "localhost", 8123)},
+		Auth: clickhouse.Auth{
+			Database: "clickhouse",
+			Username: "101",
+			Password: "101",
+		},
+		DialTimeout: time.Duration(10) * time.Second,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	ctx := context.Background()
+	conn.Exec(context.Background(), "DROP TABLE IF EXISTS instructions")
+	err = conn.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS instructions (
+	slot                  Uint64,
+	tx_id                 String,
+	txIdx                 Uint64,
+	accountKeys           array(String),
+	programId             String,
+	isInner               Bool,
+	outerInstructionIndex Int64,
+	innerInstructionIndex Int64,
+	stackHeight           Uint32,
+	accounts              array(String),
+	data                  array(Uint8),
+	txSuccess             Bool,
+	txSigner              String
+		) Engine = Memory
+	`)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	batch, err := conn.PrepareBatch(ctx, "INSERT INTO instructions")
+	if err != nil {
+		return nil, nil, err
+	}
+	return batch, conn, nil
+}
+
+func SendBatch(conn driver.Conn, batch driver.Batch) driver.Batch {
+	batch.Send()
+	batch, err := conn.PrepareBatch(context.Background(), "INSERT INTO instructions")
+	if err != nil {
+		return nil
+	}
+	return batch
 }

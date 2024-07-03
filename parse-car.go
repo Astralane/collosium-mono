@@ -141,11 +141,11 @@ func parseIndex(
 				// fmt.Printf("%s\n\n", string(p))
 
 				err := batch.Append(
+					inst.ProgramId,
 					inst.Slot,
 					inst.Tx_id,
 					inst.TxIdx,
 					inst.AccountKeys,
-					inst.ProgramId,
 					inst.IsInner,
 					inst.OuterInstructionIndex,
 					inst.InnerInstructionIndex,
@@ -166,6 +166,11 @@ func parseIndex(
 			fmt.Fprintf(os.Stderr, "\rparsed %d instructions within %d transactions", instCount, txCount)
 			if instsSinceLastIns >= 80000 {
 				batch = SendBatch(conn, batch)
+				instsSinceLastIns = 0
+			}
+			//5425613
+			if txCount >= 1000000 {
+				panic("done")
 			}
 
 			// encodedTx, encodedMeta, err := encodeTransactionResponseBasedOnWantedEncoding(solana.EncodingJSONParsed, tx, meta)
@@ -367,20 +372,23 @@ func CreateBatch() (driver.Batch, driver.Conn, error) {
 	conn.Exec(context.Background(), "DROP TABLE IF EXISTS instructions")
 	err = conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS instructions (
-	slot                  Uint64,
-	tx_id                 String,
-	txIdx                 Uint64,
-	accountKeys           array(String),
 	programId             String,
+	slot                  UInt64,
+	tx_id                 String,
+	txIdx                 UInt64,
+	accountKeys           Array(String),
 	isInner               Bool,
 	outerInstructionIndex Int64,
 	innerInstructionIndex Int64,
-	stackHeight           Uint32,
-	accounts              array(String),
-	data                  array(Uint8),
+	stackHeight           UInt32,
+	accounts              Array(String),
+	data                  Array(UInt8),
 	txSuccess             Bool,
 	txSigner              String
-		) Engine = Memory
+		) 
+	ENGINE = MergeTree
+	PRIMARY KEY (programId)
+	ORDER BY (programId, slot)
 	`)
 
 	if err != nil {
@@ -395,7 +403,7 @@ func CreateBatch() (driver.Batch, driver.Conn, error) {
 }
 
 func SendBatch(conn driver.Conn, batch driver.Batch) driver.Batch {
-	batch.Send()
+	go batch.Send()
 	batch, err := conn.PrepareBatch(context.Background(), "INSERT INTO instructions")
 	if err != nil {
 		return nil
@@ -417,7 +425,7 @@ func connect() (driver.Conn, error) {
 		},
 		Debug: true,
 		Debugf: func(format string, v ...any) {
-			fmt.Printf(format+"\n", v...)
+			//fmt.Printf(format+"\n", v...)
 		},
 		Settings: clickhouse.Settings{
 			"max_execution_time": 60,

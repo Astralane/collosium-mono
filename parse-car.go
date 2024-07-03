@@ -268,6 +268,10 @@ func ParseTx(tx solana.Transaction, metaAny any, slot, index uint64) []Instructi
 		for innerIdx, innerIns := range innerInsts {
 			accounts := parseAccounts(innerIns.accounts, accountKeys)
 
+			if len(accountKeys) <= int(innerIns.programIdIndex) {
+				continue
+			}
+
 			instData := InstructionData{
 				slot:                  slot,
 				tx_id:                 signature,
@@ -307,9 +311,9 @@ func parseAccounts[AccType AccountIdxType](accounts []AccType, accountKeys []str
 			fmt.Println(accounts)
 			fmt.Println("keys:")
 			fmt.Println(accountKeys)
-			panic("meh")
+			continue
 		}
-		result = append(result, accountKeys[accountIndex-1])
+		result = append(result, accountKeys[accountIndex])
 	}
 	return result
 }

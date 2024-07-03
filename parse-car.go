@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -301,7 +300,7 @@ func parseAccountKeys(accountKeys []solana.PublicKey) []string {
 func parseAccounts[AccType AccountIdxType](accounts []AccType, accountKeys []string) []string {
 	result := make([]string, 0, len(accounts))
 	for _, accountIndex := range accounts {
-		result = append(result, accountKeys[accountIndex])
+		result = append(result, accountKeys[accountIndex-1])
 	}
 	return result
 }

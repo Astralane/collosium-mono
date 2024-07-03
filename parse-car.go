@@ -112,6 +112,7 @@ func parseIndex(
 	}
 
 	var instCount uint64 = 0
+	var txCount uint64 = 0
 
 	// Iterate over all Transactions in the CAR file and put them into the index,
 	// using the transaction signature as the key and the CID as the value.
@@ -128,6 +129,7 @@ func parseIndex(
 			instructions := ParseTx(tx, meta, uint64(txNode.Slot), uint64(**txNode.Index))
 
 			instCount += uint64(len(instructions))
+			txCount++
 
 			// encodedTx, encodedMeta, err := encodeTransactionResponseBasedOnWantedEncoding(solana.EncodingJSONParsed, tx, meta)
 			// if err != nil {
@@ -163,7 +165,7 @@ func parseIndex(
 		return "", fmt.Errorf("UwU:failed to index; error while iterating over blocks: %w", err)
 	}
 
-	fmt.Println(instCount)
+	fmt.Printf("parsed %d instructions within %d transactions\n", instCount, txCount)
 	return "", nil
 }
 

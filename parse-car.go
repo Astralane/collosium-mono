@@ -30,19 +30,19 @@ var ParseCarCmd = &cli.Command{
 }
 
 type InstructionData struct {
-	slot                  uint64
-	tx_id                 string
-	txIdx                 uint64
-	accountKeys           []string
-	programId             string
-	isInner               bool
-	outerInstructionIndex int64
-	innerInstructionIndex int64
-	stackHeight           uint32
-	accounts              []string
-	data                  []byte
-	txSuccess             bool
-	txSigner              string
+	Slot                  uint64   `json:"slot"`
+	Tx_id                 string   `json:"txId"`
+	TxIdx                 uint64   `json:"txIndex"`
+	AccountKeys           []string `json:"accountKeys"`
+	ProgramId             string   `json:"programId"`
+	IsInner               bool     `json:"isInner"`
+	OuterInstructionIndex int64    `json:"outerInstructionIndex"`
+	InnerInstructionIndex int64    `json:"innerInstructionIndex"`
+	StackHeight           uint32   `json:"stackHeight"`
+	Accounts              []string `json:"accounts"`
+	Data                  []byte   `json:"data"`
+	TxSuccess             bool     `json:"txSuccess"`
+	TxSigner              string   `json:"txSigner"`
 }
 
 func ParseCar(c *cli.Context) error {
@@ -258,19 +258,19 @@ func ParseTx(tx solana.Transaction, metaAny any, slot, index uint64) []Instructi
 
 		instData := InstructionData{
 			//TODO: make it automatic
-			slot:                  slot,
-			tx_id:                 signature,
-			txIdx:                 index,
-			accountKeys:           accountKeys,
-			programId:             accountKeys[ins.ProgramIDIndex],
-			isInner:               false,
-			innerInstructionIndex: -1,
-			outerInstructionIndex: int64(idx + 1),
-			stackHeight:           1,
-			accounts:              accounts,
-			data:                  ins.Data,
-			txSuccess:             txSuccess,
-			txSigner:              accountKeys[0],
+			Slot:                  slot,
+			Tx_id:                 signature,
+			TxIdx:                 index,
+			AccountKeys:           accountKeys,
+			ProgramId:             accountKeys[ins.ProgramIDIndex],
+			IsInner:               false,
+			InnerInstructionIndex: -1,
+			OuterInstructionIndex: int64(idx + 1),
+			StackHeight:           1,
+			Accounts:              accounts,
+			Data:                  ins.Data,
+			TxSuccess:             txSuccess,
+			TxSigner:              accountKeys[0],
 		}
 		ret = append(ret, instData)
 
@@ -287,19 +287,19 @@ func ParseTx(tx solana.Transaction, metaAny any, slot, index uint64) []Instructi
 			}
 
 			instData := InstructionData{
-				slot:                  slot,
-				tx_id:                 signature,
-				txIdx:                 index,
-				accountKeys:           accountKeys,
-				programId:             accountKeys[innerIns.programIdIndex],
-				isInner:               true,
-				innerInstructionIndex: int64(innerIdx + 1),
-				outerInstructionIndex: int64(idx + 1),
-				stackHeight:           innerIns.stackHeight,
-				accounts:              accounts,
-				data:                  innerIns.data,
-				txSuccess:             txSuccess,
-				txSigner:              accountKeys[0],
+				Slot:                  slot,
+				Tx_id:                 signature,
+				TxIdx:                 index,
+				AccountKeys:           accountKeys,
+				ProgramId:             accountKeys[innerIns.programIdIndex],
+				IsInner:               true,
+				InnerInstructionIndex: int64(innerIdx + 1),
+				OuterInstructionIndex: int64(idx + 1),
+				StackHeight:           innerIns.stackHeight,
+				Accounts:              accounts,
+				Data:                  innerIns.data,
+				TxSuccess:             txSuccess,
+				TxSigner:              accountKeys[0],
 			}
 			ret = append(ret, instData)
 		}

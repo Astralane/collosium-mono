@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"crypto/tls"
 	"fmt"
 	"os"
 	"time"
@@ -11,7 +11,6 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/allegro/bigcache/v3"
 	"github.com/gagliardetto/solana-go"
-	"github.com/google/uuid"
 	"github.com/ipfs/go-cid"
 	carv2 "github.com/ipld/go-car/v2"
 	"github.com/mr-tron/base58"
@@ -360,17 +359,9 @@ func parseAccounts[AccType AccountIdxType](accounts []AccType, accountKeys []str
 }
 
 func CreateBatch() (driver.Batch, driver.Conn, error) {
-	conn, err := clickhouse.Open(&clickhouse.Options{
-		Addr: []string{fmt.Sprintf("%s:%d", "localhost", 8123)},
-		Auth: clickhouse.Auth{
-			Database: "clickhouse",
-			Username: "101",
-			Password: "101",
-		},
-		DialTimeout: time.Duration(10) * time.Second,
-	})
+	conn, err := connect()
 	if err != nil {
-		return nil, nil, err
+		panic(err)
 	}
 	ctx := context.Background()
 	conn.Exec(context.Background(), "DROP TABLE IF EXISTS instructions")
@@ -410,4 +401,45 @@ func SendBatch(conn driver.Conn, batch driver.Batch) driver.Batch {
 		return nil
 	}
 	return batch
+}
+
+func connect() (driver.Conn, error) {
+	var (
+		ctx       = context.Background()
+		conn, err = clickhouse.Open(&clickhouse.Options{
+			Addr: []string{"<CLICKHOUSE_SECURE_NATIVE_HOSTNAME>:9440"},
+			Auth: clickhouse.Auth{
+				Database: "default",
+				Username: "default",
+				Password: "<DEFAULT_USER_PASSWORD>",
+			},
+			ClientInfo: clickhouse.ClientInfo{
+				Products: []struct {
+					Name    string
+					Version string
+				}{
+					{Name: "an-example-go-client", Version: "0.1"},
+				},
+			},
+
+			Debugf: func(format string, v ...interface{}) {
+				fmt.Printf(format, v)
+			},
+			TLS: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		})
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := conn.Ping(ctx); err != nil {
+		if exception, ok := err.(*clickhouse.Exception); ok {
+			fmt.Printf("Exception [%d] %s \n%s\n", exception.Code, exception.Message, exception.StackTrace)
+		}
+		return nil, err
+	}
+	return conn, nil
 }

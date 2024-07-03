@@ -119,7 +119,6 @@ func parseIndex(
 		c.Context,
 		dr,
 		func(c cid.Cid, txNode *ipldbindcode.Transaction) error {
-			fmt.Println("found tx")
 
 			tx, meta, err := parseTransactionAndMetaFromNode(txNode, epoch.GetDataFrameByCid)
 			if err != nil {
@@ -164,6 +163,7 @@ func parseIndex(
 		return "", fmt.Errorf("UwU:failed to index; error while iterating over blocks: %w", err)
 	}
 
+	fmt.Println(instCount)
 	return "", nil
 }
 
@@ -315,15 +315,6 @@ func parseAccountKeys(accountKeys []solana.PublicKey) []string {
 func parseAccounts[AccType AccountIdxType](accounts []AccType, accountKeys []string) []string {
 	result := make([]string, 0, len(accounts))
 	for _, accountIndex := range accounts {
-		if int(accountIndex) >= len(accountKeys) {
-			fmt.Println("index:")
-			fmt.Println(accountIndex)
-			fmt.Println("accounts:")
-			fmt.Println(accounts)
-			fmt.Println("keys:")
-			fmt.Println(accountKeys)
-			continue
-		}
 		result = append(result, accountKeys[accountIndex])
 	}
 	return result

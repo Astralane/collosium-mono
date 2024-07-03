@@ -183,12 +183,22 @@ func ParseTx(tx solana.Transaction, metaAny any, slot, index uint64) []Instructi
 	// err innerinstructions
 	var txSuccess bool
 	innerInstructions := make([][]InnerInstructions, 0)
+	lutTables := make([]string, 0)
 
 	// try to parse as protobuf (latest format)
 	// *confirmed_block.TransactionStatusMeta
 	metaLatestConfirmed, ok := metaAny.(*confirmed_block.TransactionStatusMeta)
 	if ok {
 		txSuccess = (len(metaLatestConfirmed.Err.GetErr()) == 0)
+
+		for _, acc := range metaLatestConfirmed.GetLoadedWritableAddresses() {
+			lutTables = append(lutTables, string(acc))
+		}
+
+		for _, acc := range metaLatestConfirmed.GetLoadedReadonlyAddresses() {
+			lutTables = append(lutTables, string(acc))
+		}
+
 		ii := metaLatestConfirmed.GetInnerInstructions()
 		// ii - inner instructions
 		// i - instructinos
@@ -238,6 +248,7 @@ func ParseTx(tx solana.Transaction, metaAny any, slot, index uint64) []Instructi
 	signature := tx.Signatures[0].String()
 
 	accountKeys := parseAccountKeys(message.AccountKeys)
+	accountKeys = append(accountKeys, lutTables...)
 
 	for idx, ins := range insts {
 		accounts := parseAccounts(ins.Accounts, accountKeys)

@@ -300,6 +300,15 @@ func parseAccountKeys(accountKeys []solana.PublicKey) []string {
 func parseAccounts[AccType AccountIdxType](accounts []AccType, accountKeys []string) []string {
 	result := make([]string, 0, len(accounts))
 	for _, accountIndex := range accounts {
+		if int(accountIndex) >= len(accountKeys) {
+			fmt.Println("index:")
+			fmt.Println(accountIndex)
+			fmt.Println("accounts:")
+			fmt.Println(accounts)
+			fmt.Println("keys:")
+			fmt.Println(accountKeys)
+			panic("meh")
+		}
 		result = append(result, accountKeys[accountIndex-1])
 	}
 	return result

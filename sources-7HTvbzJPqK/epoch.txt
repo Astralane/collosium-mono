@@ -1,0 +1,26 @@
+epoch: 632 # epoch number (required)
+version: 1 # version number (required)
+data: # data section (required)
+  car:
+    # Source the data from a CAR file (car-mode).
+    # The URI can be a local filepath or an HTTP url.
+    # This makes the indexes.cid_to_offset_and_size required.
+    # If you are running in filecoin-mode, you can omit the car section entirely.
+    uri: /mnt/kafka-db/of/epoch-632.car
+indexes: # indexes section (required)
+  cid_to_offset_and_size:
+    # Required when using a CAR file; you can provide either a local filepath or a HTTP url.
+    # Not used when running in filecoin-mode.
+    uri: '/media/runner/solana/indexes/epoch-0/epoch-0-bafyreifljyxj55v6jycjf2y7tdibwwwqx75eqf5mn2thip2sswyc536zqq-mainnet-cid-to-offset-and-size.index'
+  slot_to_cid:
+    # required (always); you can provide either a local filepath or a HTTP url:
+    uri: '/media/runner/solana/indexes/epoch-0/epoch-0-bafyreifljyxj55v6jycjf2y7tdibwwwqx75eqf5mn2thip2sswyc536zqq-mainnet-slot-to-cid.index'
+  sig_to_cid:
+    # required (always); you can provide either a local filepath or a HTTP url:
+    uri: '/media/runner/solana/indexes/epoch-0/epoch-0-bafyreifljyxj55v6jycjf2y7tdibwwwqx75eqf5mn2thip2sswyc536zqq-mainnet-sig-to-cid.index'
+  sig_exists:
+    # required (always); you can provide either a local filepath or a HTTP url:
+    uri: '/media/runner/solana/indexes/epoch-0/epoch-0-bafyreifljyxj55v6jycjf2y7tdibwwwqx75eqf5mn2thip2sswyc536zqq-mainnet-sig-exists.index'
+  gsfa: # getSignaturesForAddress index
+    # optional; must be a local directory path.
+    uri: '/media/runner/solana/indexes/epoch-0/gsfa/epoch-0-bafyreifljyxj55v6jycjf2y7tdibwwwqx75eqf5mn2thip2sswyc536zqq-gsfa.indexdir'

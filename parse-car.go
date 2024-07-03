@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"os"
 
 	"github.com/allegro/bigcache/v3"
 	"github.com/gagliardetto/solana-go"
@@ -130,6 +131,7 @@ func parseIndex(
 
 			instCount += uint64(len(instructions))
 			txCount++
+			fmt.Fprintf(os.Stderr, "\rparsed %d instructions within %d transactions", instCount, txCount)
 
 			// encodedTx, encodedMeta, err := encodeTransactionResponseBasedOnWantedEncoding(solana.EncodingJSONParsed, tx, meta)
 			// if err != nil {
@@ -165,7 +167,6 @@ func parseIndex(
 		return "", fmt.Errorf("UwU:failed to index; error while iterating over blocks: %w", err)
 	}
 
-	fmt.Printf("parsed %d instructions within %d transactions\n", instCount, txCount)
 	return "", nil
 }
 
@@ -303,7 +304,7 @@ func ParseTx(tx solana.Transaction, metaAny any, slot, index uint64) []Instructi
 			ret = append(ret, instData)
 		}
 	}
-	return nil
+	return ret
 }
 
 func parseAccountKeys(accountKeys []solana.PublicKey) []string {

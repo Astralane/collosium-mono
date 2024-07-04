@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"net"
 	"os"
 	"time"

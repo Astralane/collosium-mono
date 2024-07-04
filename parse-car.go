@@ -169,7 +169,7 @@ func parseIndex(
 				instsSinceLastIns = 0
 			}
 			//5425613
-			if txCount >= 1000000 {
+			if txCount >= 10000000 {
 				panic("done")
 			}
 

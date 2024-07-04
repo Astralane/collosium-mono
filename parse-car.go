@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+//	"encoding/json"
 	"fmt"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"net"
@@ -65,6 +65,7 @@ func parseIndex(
 
 	carPath := c.Args().Get(0)
 	epochConfigPath := c.Args().Get(1)
+	//filename := c.Args().Get(2)
 
 	// Check if the CAR file exists:
 	exists, err := fileExists(carPath)
@@ -123,6 +124,12 @@ func parseIndex(
 	if err != nil {
 		panic(err)
 	}
+	//f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	//if err != nil {
+	//	panic(err)
+	//}
+
+	//defer f.Close()
 
 	// Iterate over all Transactions in the CAR file and put them into the index,
 	// using the transaction signature as the key and the CID as the value.
@@ -138,27 +145,32 @@ func parseIndex(
 
 			instructions := ParseTx(tx, meta, uint64(txNode.Slot), uint64(**txNode.Index))
 			for _, inst := range instructions {
-				p, _ := json.Marshal(inst)
-				fmt.Printf("%s\n\n", string(p))
+			//	p, _ := json.Marshal(inst)
+				//fmt.Printf("%s\n\n", string(p))
 
-				// err := batch.Append(
-				// 	inst.ProgramId,
-				// 	inst.Slot,
-				// 	inst.Tx_id,
-				// 	inst.TxIdx,
-				// 	inst.AccountKeys,
-				// 	inst.IsInner,
-				// 	inst.OuterInstructionIndex,
-				// 	inst.InnerInstructionIndex,
-				// 	inst.StackHeight,
-				// 	inst.Accounts,
-				// 	inst.Data,
-				// 	inst.TxSuccess,
-				// 	inst.TxSigner,
-				// )
-				// if err != nil {
-				// 	return nil
-				// }
+			//	if _, err = f.WriteString(string(p)); err != nil {
+			//		panic(err)
+			//	}
+			//	f.WriteString("\n\n")
+
+				 err := batch.Append(
+				 	inst.ProgramId,
+				 	inst.Slot,
+				 	inst.Tx_id,
+				 	inst.TxIdx,
+				 	inst.AccountKeys,
+				 	inst.IsInner,
+				 	inst.OuterInstructionIndex,
+				 	inst.InnerInstructionIndex,
+				 	inst.StackHeight,
+				 	inst.Accounts,
+				 	inst.Data,
+				 	inst.TxSuccess,
+				 	inst.TxSigner,
+				 )
+				 if err != nil {
+				 	return nil
+				 }
 			}
 
 			instCount += uint64(len(instructions))
@@ -170,9 +182,16 @@ func parseIndex(
 				instsSinceLastIns = 0
 			}
 			//5425613
-			if txCount >= 10000000 {
+			if txCount%1000000 == 0 {
+				fmt.Println("txCount: ", txCount)
+			}
+
+			if txCount == 10000000 {
+				SendBatch(conn, batch)
 				panic("done")
 			}
+
+
 
 			// encodedTx, encodedMeta, err := encodeTransactionResponseBasedOnWantedEncoding(solana.EncodingJSONParsed, tx, meta)
 			// if err != nil {
@@ -236,11 +255,11 @@ func ParseTx(tx solana.Transaction, metaAny any, slot, index uint64) []Instructi
 		txSuccess = (len(metaLatestConfirmed.Err.GetErr()) == 0)
 
 		for _, acc := range metaLatestConfirmed.GetLoadedWritableAddresses() {
-			lutTables = append(lutTables, string(acc))
+			lutTables = append(lutTables, string(base58.Encode(acc)))
 		}
 
 		for _, acc := range metaLatestConfirmed.GetLoadedReadonlyAddresses() {
-			lutTables = append(lutTables, string(acc))
+			lutTables = append(lutTables, string(base58.Encode(acc)))
 		}
 
 		ii := metaLatestConfirmed.GetInnerInstructions()

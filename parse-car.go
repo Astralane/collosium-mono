@@ -137,27 +137,27 @@ func parseIndex(
 
 			instructions := ParseTx(tx, meta, uint64(txNode.Slot), uint64(**txNode.Index))
 			for _, inst := range instructions {
-				// p, _ := json.Marshal(inst)
-				// fmt.Printf("%s\n\n", string(p))
+				p, _ := json.Marshal(inst)
+				fmt.Printf("%s\n\n", string(p))
 
-				err := batch.Append(
-					inst.ProgramId,
-					inst.Slot,
-					inst.Tx_id,
-					inst.TxIdx,
-					inst.AccountKeys,
-					inst.IsInner,
-					inst.OuterInstructionIndex,
-					inst.InnerInstructionIndex,
-					inst.StackHeight,
-					inst.Accounts,
-					inst.Data,
-					inst.TxSuccess,
-					inst.TxSigner,
-				)
-				if err != nil {
-					return nil
-				}
+				// err := batch.Append(
+				// 	inst.ProgramId,
+				// 	inst.Slot,
+				// 	inst.Tx_id,
+				// 	inst.TxIdx,
+				// 	inst.AccountKeys,
+				// 	inst.IsInner,
+				// 	inst.OuterInstructionIndex,
+				// 	inst.InnerInstructionIndex,
+				// 	inst.StackHeight,
+				// 	inst.Accounts,
+				// 	inst.Data,
+				// 	inst.TxSuccess,
+				// 	inst.TxSigner,
+				// )
+				// if err != nil {
+				// 	return nil
+				// }
 			}
 
 			instCount += uint64(len(instructions))

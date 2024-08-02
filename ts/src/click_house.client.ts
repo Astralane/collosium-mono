@@ -15,7 +15,7 @@ export function getClickHouseClient() {
       }
     })
     return client;
-  } catch(e) {
+  } catch (e) {
     console.error('Error during creating click house client');
     throw new Error(e instanceof Error ? e.message : 'Unknown error');
   }

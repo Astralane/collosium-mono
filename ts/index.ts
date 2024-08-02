@@ -8,27 +8,36 @@ configDotenv();
 const DB_CLIENT = getClickHouseClient();
 
 async function createTable(token: string) {
-  const tableName = `${token}_price_history`;  
+  const tableName = `${token}_price_history`;
   await DB_CLIENT.command({
     query: `
       CREATE TABLE IF NOT EXISTS ${tableName} (
-        timestamp UInt32,
+        slot UInt32,
         price Float64,
       ) 
       ENGINE ReplacingMergeTree
-      ORDER BY timestamp
-      PRIMARY KEY (timestamp)
+      ORDER BY slot
+      PRIMARY KEY (slot)
     `
   })
 }
 
 async function saveData(token: string, data: BirdeyeApiResponse[]) {
   const tableName = `${token}_price_history`;
-  const values = data.map(item => `(${item.unixTime}, ${item.value})`).join(',');
+  for (const item of data) {
+    let row = await DB_CLIENT.query({
+      query: `SELECT max(slot) slot FROM slot_timestamp WHERE timestamp <= ${item.unixTime}`,
+      format: 'JSONCompactEachRow',
+    });
+    let slot = String((await row.json())[0]);
+    item.slot = +slot
+  }
+  const values = data.map(item => `(${item.slot}, ${item.value})`).join(',');
+
 
   await DB_CLIENT.command({
     query: `
-      INSERT INTO ${tableName} (timestamp, price) VALUES ${values}
+      INSERT INTO ${tableName} (slot, price) VALUES ${values}
     `,
   })
 }
@@ -43,12 +52,12 @@ async function main() {
     .option('timeFrom', {
       type: 'number',
       demandOption: true,
-      description: 'Start time in UNIX timestamp', 
+      description: 'Start time in UNIX timestamp',
     })
     .option('timeTo', {
       type: 'number',
       demandOption: true,
-      description: 'End time in UNIX timestamp',  
+      description: 'End time in UNIX timestamp',
     }).argv;
 
   const token = argv.token;
@@ -67,7 +76,7 @@ async function main() {
       await saveData(token, data);
       console.log(`Data from ${start} to ${end} saved.`);
     } catch (error) {
-      console.error(`Error fetching data from ${start} to ${end}:`, error);  
+      console.error(`Error fetching data from ${start} to ${end}:`, error);
     }
     start = end;
   }

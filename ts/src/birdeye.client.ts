@@ -6,6 +6,7 @@ const API_KEY = '14335da880764a9bacb71ad7c24895f6';
 export interface BirdeyeApiResponse {
   unixTime: number,
   value: number,
+  slot: number,
 }
 
 export async function fetchPriceHistory(token: string, timeFrom: number, timeTo: number): Promise<BirdeyeApiResponse[]> {
@@ -23,7 +24,7 @@ export async function fetchPriceHistory(token: string, timeFrom: number, timeTo:
       }
     });
     return response.data['data']['items'];
-  } catch(e) {
+  } catch (e) {
     console.error('Error during fetching data from birdeye', e);
     throw new Error(e instanceof Error ? e.message : 'Unknown error');
   }

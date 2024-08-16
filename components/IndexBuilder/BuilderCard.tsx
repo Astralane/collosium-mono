@@ -57,7 +57,7 @@ const BuilderCard = () => {
             name: indexName,
             date: new Date().toLocaleString(),
           },
-          ...(JSON.parse(prevData) as unknown as []),
+          ...((JSON.parse(prevData) as unknown) as []),
         ])
       );
     } else {
@@ -77,8 +77,8 @@ const BuilderCard = () => {
   }
   return (
     <div className="w-full flex justify-center">
-      <Card className="w-full max-w-4xl">
-        <h5 className="text-2xl   dark:text-white">Create a new index</h5>
+      <Card className="w-full max-w-4xl ">
+        <h5 className="text-2xl">Create a new index</h5>
         <div>
           <div className="mb-2 block">
             <Label htmlFor="index_name" value="Index name" />
@@ -89,12 +89,13 @@ const BuilderCard = () => {
             placeholder="eg: bayc-nft-watchlist"
             onChange={(e) => setIndexName(e.target.value)}
             value={indexName}
+            // color={"dark"}
           />
         </div>
         <div className="text-2xl">Solana Transactions</div>
         <div className="text-xl font-medium">Filters</div>
         <FiltersGroup filters={filters} setFilters={setFilters} />
-        <Button outline color="light" onClick={appendFilter}>
+        <Button outline onClick={appendFilter}>
           Add filter
         </Button>
 

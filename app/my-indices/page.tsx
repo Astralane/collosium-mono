@@ -1,4 +1,4 @@
-import IndexTable from "@/component/IndexTable";
+import IndexTable from "@/components/IndexTable";
 
 export default function MyIndices() {
   return (

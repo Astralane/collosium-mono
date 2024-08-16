@@ -2,6 +2,7 @@
   "name": "astralane-fe",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,12 +10,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@headlessui/react": "^2.1.2",
     "@tanstack/react-query": "^5.44.0",
     "axios": "^1.7.2",
     "flowbite": "^2.3.0",
     "flowbite-react": "^0.9.0",
     "graphql-playground-react": "^1.7.28",
     "next": "14.2.3",
+    "preline": "^2.4.1",
     "react": "^18",
     "react-dom": "^18",
     "react-icons": "^5.2.1",

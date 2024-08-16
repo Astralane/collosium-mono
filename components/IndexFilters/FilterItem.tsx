@@ -225,7 +225,6 @@ const FilterItem: React.FC<FilterItemProps> = ({
             ))}
 
           <Button
-            color="dark"
             className="mt-3"
             onClick={appendCondition}
             disabled={Boolean(!isAddConditionDisabled)}
@@ -236,14 +235,13 @@ const FilterItem: React.FC<FilterItemProps> = ({
 
           <div className="flex justify-end">
             <Button
-              outline
               color={"success"}
               className="mr-3"
               onClick={handleSaveCondition}
             >
               <FaSave className="h-5 w-5 mr-2" /> Save
             </Button>
-            <Button outline color={"failure"} onClick={handleRemoveFilter}>
+            <Button color={"failure"} onClick={handleRemoveFilter}>
               <BiTrash className="h-5 w-5 mr-2" /> Delete
             </Button>
           </div>

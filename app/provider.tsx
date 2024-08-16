@@ -7,7 +7,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 function makeQueryClient() {
@@ -48,7 +48,7 @@ export default function Providers({ children }: any) {
   return (
     <QueryClientProvider client={queryClient}>
       {" "}
-      <ToastContainer />
+      <ToastContainer theme="dark" />
       {children}
     </QueryClientProvider>
   );

@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 
 import { Inter } from "next/font/google";
 import "./globals.css";
-import AppNavbar from "@/component/AppNavbar";
+import AppNavbar from "@/components/AppNavbar";
 import Providers from "./provider";
+import { Flowbite, ThemeModeScript } from "flowbite-react";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -16,16 +18,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} `}>
-        <Providers>
-          <main className="flex">
-            <AppNavbar />
-            <main className="p-8 w-full max-h-screen overflow-scroll">
-              {children}
+    <html lang="en" className="dark">
+      {/* <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+      </head> */}
+      <head>
+        <ThemeModeScript />
+      </head>
+      <body className={`${inter.className}`}>
+        <Flowbite theme={{ mode: "dark" }}>
+          <Providers>
+            <main className="flex">
+              <AppNavbar />
+              <main className="p-8 w-full max-h-screen overflow-scroll">
+                {children}
+              </main>
             </main>
-          </main>
-        </Providers>
+          </Providers>
+        </Flowbite>
       </body>
     </html>
   );

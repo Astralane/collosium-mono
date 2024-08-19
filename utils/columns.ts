@@ -1,5 +1,3 @@
-import { TFilterItem } from "@/component/IndexBuilder/BuilderCard";
-
 export const availableColumns = [
   "block_slot",
   "program_id",

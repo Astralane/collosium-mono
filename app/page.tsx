@@ -5,15 +5,22 @@ export default function Home() {
   return (
     <Box
       sx={{
-        display: "flex",
-
-        justifyContent: "center",
-        alignItems: "center",
         marginTop: "30px",
+        padding: "20px",
+        width: "100%",
       }}
     >
-      <Typography variant="h4">Astralane Solana Sandwich Monitor</Typography>
-      <Sandwiches />
+      <Box
+        sx={{
+          width: "100%",
+        }}
+      >
+        <Typography variant="h4" textAlign={"center"} mb={"20px"}>
+          Astralane Solana Sandwich Monitor
+        </Typography>
+
+        <Sandwiches />
+      </Box>
     </Box>
   );
 }

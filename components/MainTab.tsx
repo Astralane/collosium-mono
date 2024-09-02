@@ -4,7 +4,7 @@ import { Tabs } from "flowbite-react";
 
 const MainTab: FC = () => {
   return (
-    <Tabs aria-label="Tabs" style="underline">
+    <Tabs aria-label="Tabs">
       <Tabs.Item active title="Index builder">
         This is{" "}
         <span className="font-medium text-gray-800 dark:text-white">

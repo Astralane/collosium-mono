@@ -16,10 +16,10 @@ const fetchIdl = async (pubKey?: string) => {
     `${process.env.NEXT_PUBLIC_STREAMING_SERVER}/idl/download?programPubkey=${pubKey}`
   );
   return response.data;
-  return Promise.resolve(dummy);
+  //return Promise.resolve(dummy);
 };
 
-function mockFetchIDl<Idl>(): Promise<Idl> {
+function mockFetchIDl<Idl>(pubKey?: string): Promise<Idl> {
   return new Promise<Idl>((resolve, reject) => {
     setTimeout(() => resolve(dummy as Idl), 1000);
   });
@@ -918,8 +918,7 @@ const dummy = {
     {
       code: 6005,
       name: "TooManyCreators",
-      msg:
-        "Can only provide up to 4 creators to candy machine (because candy machine is one)!",
+      msg: "Can only provide up to 4 creators to candy machine (because candy machine is one)!",
     },
     {
       code: 6006,
@@ -954,8 +953,7 @@ const dummy = {
     {
       code: 6012,
       name: "HiddenSettingsConfigsDoNotHaveConfigLines",
-      msg:
-        "Configs that are using hidden uris do not have config lines, they have a single hash representing hashed order",
+      msg: "Configs that are using hidden uris do not have config lines, they have a single hash representing hashed order",
     },
     {
       code: 6013,
@@ -1020,8 +1018,7 @@ const dummy = {
     {
       code: 6025,
       name: "CannotSwitchToHiddenSettings",
-      msg:
-        "Cannot Switch to Hidden Settings after items available is greater than 0",
+      msg: "Cannot Switch to Hidden Settings after items available is greater than 0",
     },
     {
       code: 6026,
@@ -1051,26 +1048,22 @@ const dummy = {
     {
       code: 6031,
       name: "MetadataAccountMustBeEmpty",
-      msg:
-        "The metadata account has data in it, and this must be empty to mint a new NFT",
+      msg: "The metadata account has data in it, and this must be empty to mint a new NFT",
     },
     {
       code: 6032,
       name: "MissingSetCollectionDuringMint",
-      msg:
-        "Missing set collection during mint IX for Candy Machine with collection set",
+      msg: "Missing set collection during mint IX for Candy Machine with collection set",
     },
     {
       code: 6033,
       name: "NoChangingCollectionDuringMint",
-      msg:
-        "Can't change collection settings after items have begun to be minted",
+      msg: "Can't change collection settings after items have begun to be minted",
     },
     {
       code: 6034,
       name: "CandyCollectionRequiresRetainAuthority",
-      msg:
-        "Retain authority must be true for Candy Machines with a collection set",
+      msg: "Retain authority must be true for Candy Machines with a collection set",
     },
     {
       code: 6035,
@@ -1080,14 +1073,12 @@ const dummy = {
     {
       code: 6036,
       name: "NoChangingFreezeDuringMint",
-      msg:
-        "Can't change freeze settings after items have begun to be minted. You can only disable.",
+      msg: "Can't change freeze settings after items have begun to be minted. You can only disable.",
     },
     {
       code: 6037,
       name: "NoChangingAuthorityWithCollection",
-      msg:
-        "Can't change authority while collection is enabled. Disable collection first.",
+      msg: "Can't change authority while collection is enabled. Disable collection first.",
     },
     {
       code: 6038,
@@ -1097,14 +1088,12 @@ const dummy = {
     {
       code: 6039,
       name: "InvalidThawNft",
-      msg:
-        "Cannot thaw NFT unless all NFTs are minted or Candy Machine authority enables thawing",
+      msg: "Cannot thaw NFT unless all NFTs are minted or Candy Machine authority enables thawing",
     },
     {
       code: 6040,
       name: "IncorrectRemainingAccountsLen",
-      msg:
-        "The number of remaining accounts passed in doesn't match the Candy Machine settings",
+      msg: "The number of remaining accounts passed in doesn't match the Candy Machine settings",
     },
     {
       code: 6041,
@@ -1129,20 +1118,17 @@ const dummy = {
     {
       code: 6045,
       name: "NoWithdrawWithFreeze",
-      msg:
-        "Can't withdraw Candy Machine while freeze is active. Disable freeze first.",
+      msg: "Can't withdraw Candy Machine while freeze is active. Disable freeze first.",
     },
     {
       code: 6046,
       name: "NoWithdrawWithFrozenFunds",
-      msg:
-        "Can't withdraw Candy Machine while frozen funds need to be redeemed. Unlock funds first.",
+      msg: "Can't withdraw Candy Machine while frozen funds need to be redeemed. Unlock funds first.",
     },
     {
       code: 6047,
       name: "MissingRemoveFreezeTokenAccounts",
-      msg:
-        "Missing required remaining accounts for remove_freeze with token mint.",
+      msg: "Missing required remaining accounts for remove_freeze with token mint.",
     },
     {
       code: 6048,
@@ -1152,14 +1138,12 @@ const dummy = {
     {
       code: 6049,
       name: "NoUnlockWithNFTsStillFrozen",
-      msg:
-        "Can't unlock funds while NFTs are still frozen. Run thaw on all NFTs first.",
+      msg: "Can't unlock funds while NFTs are still frozen. Run thaw on all NFTs first.",
     },
     {
       code: 6050,
       name: "SizedCollectionMetadataMustBeMutable",
-      msg:
-        "Setting a sized collection requires the collection metadata to be mutable.",
+      msg: "Setting a sized collection requires the collection metadata to be mutable.",
     },
     {
       code: 6051,

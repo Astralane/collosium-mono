@@ -47,31 +47,31 @@ const BuilderCard = () => {
     toast.success("Index created successfully!", {
       position: "top-right",
     });
-    const prevData = localStorage.getItem("myIndex");
-    if (prevData) {
-      localStorage.setItem(
-        "myIndex",
-        JSON.stringify([
-          {
-            id: data.data,
-            name: indexName,
-            date: new Date().toLocaleString(),
-          },
-          ...((JSON.parse(prevData) as unknown) as []),
-        ])
-      );
-    } else {
-      localStorage.setItem(
-        "myIndex",
-        JSON.stringify([
-          {
-            id: data.data,
-            name: indexName,
-            date: new Date().toLocaleString(),
-          },
-        ])
-      );
-    }
+    // const prevData = localStorage.getItem("myIndex");
+    // if (prevData) {
+    //   localStorage.setItem(
+    //     "myIndex",
+    //     JSON.stringify([
+    //       {
+    //         id: data.data,
+    //         name: indexName,
+    //         date: new Date().toLocaleString(),
+    //       },
+    //       ...((JSON.parse(prevData) as unknown) as []),
+    //     ])
+    //   );
+    // } else {
+    //   localStorage.setItem(
+    //     "myIndex",
+    //     JSON.stringify([
+    //       {
+    //         id: data.data,
+    //         name: indexName,
+    //         date: new Date().toLocaleString(),
+    //       },
+    //     ])
+    //   );
+    // }
     setIndexName("");
     setFilters([]);
   }

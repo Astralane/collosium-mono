@@ -11,7 +11,8 @@ const useCreateIndex = (handleSuccess: (data: any) => void) =>
         },
         {
           headers: {
-            "x-api-key": "myKe23y",
+            "x-api-key":
+              "b2f9d58511806a5a142e99fe42c44c0eb91221d04227e28145e818a110c5e64f",
           },
         }
       ),

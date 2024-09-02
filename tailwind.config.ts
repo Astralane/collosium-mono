@@ -8,6 +8,16 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     flowbite.content(),
   ],
+  safelist: [
+    "bg-[#1e5159]",
+    "text-[#43b5c5]",
+    "bg-[#116939]",
+    "text-[#26e97e]",
+    "bg-[#712c71]",
+    "text-[#fa62fc]",
+    "bg-[#512965]",
+    "text-[#b45be1]",
+  ],
   theme: {
     extend: {
       backgroundImage: {

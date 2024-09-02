@@ -63,7 +63,7 @@ const FilterItem: React.FC<FilterItemProps> = ({
       if (condition.id === id) {
         return {
           ...condition,
-          [key]: value,
+          [key]: [value],
         };
       }
       return condition;

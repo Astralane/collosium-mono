@@ -1,0 +1,21 @@
+[package]
+name = "substreams-rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+
+[dependencies]
+tonic = { workspace = true }
+prost = { workspace = true }
+prost-types = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+reqwest = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+tokio-retry = { workspace = true }
+async-stream = { workspace = true }
+futures-util = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

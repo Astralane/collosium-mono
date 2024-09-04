@@ -24,7 +24,7 @@ impl SubstreamsEndpoint {
         let endpoint = match uri.scheme().unwrap_or(&Scheme::HTTP).as_str() {
             "http" => Channel::builder(uri),
             "https" => Channel::builder(uri)
-                .tls_config(ClientTlsConfig::new())
+                .tls_config(ClientTlsConfig::new().with_native_roots())
                 .expect("TLS config on this host is invalid"),
             _ => panic!("invalid uri scheme for firehose endpoint"),
         }
@@ -62,7 +62,8 @@ impl SubstreamsEndpoint {
             },
         )
         .accept_compressed(CompressionEncoding::Gzip)
-        .send_compressed(CompressionEncoding::Gzip);
+        .send_compressed(CompressionEncoding::Gzip)
+        .max_decoding_message_size(10 * 1024 * 1024);
 
         let response_stream = client.blocks(request).await?;
         let block_stream = response_stream.into_inner();

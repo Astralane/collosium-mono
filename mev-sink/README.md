@@ -7,13 +7,3 @@ buf generate --exclude-path="google,sf/substreams" https://spkg.io/topledger/tl-
 ```
 
 > **Note** An `.spkg` contains recursively all Proto definitions, some you may not desire. You can exclude generation of some element via `--exclude-path="google"` flag. You can specify many separated by a comma.
-
-#### Just Substreams
-
-You can generate against published [Substreams Buf Module](https://buf.build/streamingfast/substreams):
-
-```bash
-buf generate buf.build/streamingfast/substreams
-```
-
-This will include only Substreams system Protobufs to decode packages and perform RPC operations.

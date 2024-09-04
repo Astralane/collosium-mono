@@ -74,7 +74,7 @@ fn stream_blocks(
                 output_module: output_module_name.clone(),
                 modules: modules.clone(),
                 debug_initial_store_snapshot_for_modules: vec![],
-            }).await;
+            noop_mode: false,}).await;
 
             match result {
                 Ok(stream) => {

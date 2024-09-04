@@ -2,6 +2,7 @@ use crate::pb::sf::substreams::rpc::v2::stream_client::StreamClient;
 use crate::pb::sf::substreams::rpc::v2::{Request, Response};
 use std::sync::Arc;
 use std::time::Duration;
+use tonic::codec::CompressionEncoding;
 use tonic::codegen::http::uri::Scheme;
 use tonic::metadata::MetadataValue;
 use tonic::transport::{Channel, ClientTlsConfig, Uri};
@@ -59,7 +60,9 @@ impl SubstreamsEndpoint {
 
                 Ok(r)
             },
-        );
+        )
+        .accept_compressed(CompressionEncoding::Gzip)
+        .send_compressed(CompressionEncoding::Gzip);
 
         let response_stream = client.blocks(request).await?;
         let block_stream = response_stream.into_inner();

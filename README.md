@@ -1,9 +1,14 @@
 # substream-client
 
 clickhouse sink for substream data.
-how to run
+binaries are in 
 ```
-export SUBSTREAMS_API_TOKEN=<your substream token>
+/mev-sink
+```
+how to ru
+```
+cd mev-sink &&
+export SUBSTREAMS_API_TOKEN=<your substream token> &&
 ./start.sh 
 ```
 

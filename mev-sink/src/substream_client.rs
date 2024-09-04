@@ -44,39 +44,39 @@ impl SubstreamClient {
 
         loop {
             tokio::select! {
-                    message = substream.next() => {
-                        match message {
-                            None => {
-                                tracing::info!("Stream consumed");
-                                break;
-                            }
-                            Some(Ok(BlockResponse::New(data))) => {
-                                let output = data.output.as_ref().unwrap().map_output.as_ref().unwrap();
-                                let out = T::decode(output.value.as_slice());
-                                match out {
-                                    Ok(out) => {
-                                        let result = db.insert(out.into()).await;
-                                        if let Err(err) = result {
-                                            tracing::error!("Error inserting data: {:?}", err);
-                                            break;
-                                        }
-                                    }
-                                    Err(err) => {
-                                        tracing::error!("Error decoding output: {:?}", err);
+                message = substream.next() => {
+                    match message {
+                        None => {
+                            tracing::info!("Stream consumed");
+                            break;
+                        }
+                        Some(Ok(BlockResponse::New(data))) => {
+                            let output = data.output.as_ref().unwrap().map_output.as_ref().unwrap();
+                            let out = T::decode(output.value.as_slice());
+                            match out {
+                                Ok(out) => {
+                                    let result = db.insert(out.into()).await;
+                                    if let Err(err) = result {
+                                        tracing::error!("Error inserting data: {:?}", err);
                                         break;
                                     }
                                 }
-                            }
-                            Some(Ok(BlockResponse::Undo(undo_signal))) => {
-                                tracing::warn!("Undo block data: {:?}", undo_signal);
-                                //TODO: Implement undo logic
-                            }
-                            Some(Err(err)) => {
-                                tracing::error!("Stream terminated with error: {:?}", err);
-                                break;
+                                Err(err) => {
+                                    tracing::error!("Error decoding output: {:?}", err);
+                                    break;
+                                }
                             }
                         }
+                        Some(Ok(BlockResponse::Undo(undo_signal))) => {
+                            tracing::warn!("Undo block data: {:?}", undo_signal);
+                            //TODO: Implement undo logic
+                        }
+                        Some(Err(err)) => {
+                            tracing::error!("Stream terminated with error: {:?}", err);
+                            break;
+                        }
                     }
+                }
             }
         }
     }

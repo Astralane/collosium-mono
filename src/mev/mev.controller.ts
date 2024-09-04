@@ -1,7 +1,11 @@
 import { Controller, Get, Post, Put, Delete, Query } from '@nestjs/common';
 import { ISandwichesDTO } from './dto/sandwiches.dto';
 import { MevService } from './mev.service';
-import { TPoolsCountDTO, TSandwichTotalDTO } from './dto/poolscount.dto';
+import {
+  TPoolsCountDTO,
+  TProgramsCountDTO,
+  TSandwichTotalDTO,
+} from './dto/poolscount.dto';
 
 @Controller('mev')
 export class MevController {
@@ -27,6 +31,10 @@ export class MevController {
   @Get('/total/sandwiches')
   async getTotalSandwiches(): Promise<TSandwichTotalDTO> {
     return await this.mevService.fetchTotalSandwiches();
+  }
+  @Get('/programs/count')
+  async getProgramsCount(): Promise<TProgramsCountDTO[]> {
+    return await this.mevService.fetchAggreatedProgramsCount();
   }
   @Post()
   create(): string {

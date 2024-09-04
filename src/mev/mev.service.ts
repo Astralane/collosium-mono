@@ -2,7 +2,11 @@ import { ClickHouseClient } from '@clickhouse/client';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ISandwichesDTO } from './dto/sandwiches.dto';
 import { plainToInstance } from 'class-transformer';
-import { TSandwichTotalDTO, TPoolsCountDTO } from './dto/poolscount.dto';
+import {
+  TSandwichTotalDTO,
+  TPoolsCountDTO,
+  TProgramsCountDTO,
+} from './dto/poolscount.dto';
 
 @Injectable()
 export class MevService {
@@ -66,6 +70,24 @@ export class MevService {
     } catch (error) {
       // Handle error
       throw new Error('Failed to fetch total sandwiches');
+    }
+  }
+
+  async fetchAggreatedProgramsCount(): Promise<TProgramsCountDTO[]> {
+    try {
+      const query =
+        "SELECT program, COUNT(program) AS count FROM (SELECT arrayJoin(arrayConcat(`frontrun_swaps.inner_program`, `frontrun_swaps.outer_program`, `backrun_swaps.inner_program`,`backrun_swaps.outer_program`,`victim_swaps.outer_program`,`victim_swaps.inner_program`)) AS program FROM sandwiches) AS s WHERE program != ' ' GROUP BY program ORDER BY count DESC;";
+      const result = await this.clickhouseClient.query({
+        query,
+        format: 'JSON',
+      });
+      const data = (await result.json()).data;
+      return plainToInstance(TProgramsCountDTO, data, {
+        excludeExtraneousValues: true,
+      });
+    } catch (error) {
+      // Handle error
+      throw new Error('Failed to fetch program count from the table');
     }
   }
 }

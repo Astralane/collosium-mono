@@ -11,3 +11,10 @@ export class TSandwichTotalDTO {
   @Expose()
   total: number;
 }
+
+export class TProgramsCountDTO {
+  @Expose()
+  program: string;
+  @Expose()
+  count: number;
+}

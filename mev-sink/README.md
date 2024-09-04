@@ -1,3 +1,5 @@
+# Genrate proto files
+
 #### From a pre-built `.spkg`
 
 If you have an `.spkg` that already contains your Protobuf definitions, you can use it directly. It contains Substreams system Protobuf definitions so you can generate everything in one shot:

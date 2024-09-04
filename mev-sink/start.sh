@@ -4,5 +4,5 @@ RUST_LOG=info && cargo run --release -- \
 --db-password="ULnKMtwmpGC9~" \
 --db-database="default" \
 --package="solana-mev-substream-v1.0.1.spkg" \
---from=283581338 \
---to=283591338
+--from=281756256 \
+--to=282188255

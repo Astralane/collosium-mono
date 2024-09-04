@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Query } from '@nestjs/common';
 import { ISandwichesDTO } from './dto/sandwiches.dto';
 import { MevService } from './mev.service';
 import { TPoolsCountDTO, TSandwichTotalDTO } from './dto/poolscount.dto';
@@ -7,8 +7,17 @@ import { TPoolsCountDTO, TSandwichTotalDTO } from './dto/poolscount.dto';
 export class MevController {
   constructor(private readonly mevService: MevService) {}
   @Get('/sandwiches')
-  async getAllSandwiches(): Promise<ISandwichesDTO[]> {
-    return await this.mevService.fetchDataFromSandwichesTable();
+  async getAllSandwiches(
+    @Query('limit') limit: string,
+    @Query('offset') offset: string,
+  ): Promise<ISandwichesDTO[]> {
+    const limitValue = parseInt(limit, 10) || 10; // Default limit is 10 if not provided
+    const offsetValue = parseInt(offset, 10) || 0; // Default offset is 0 if not provided
+
+    return await this.mevService.fetchDataFromSandwichesTable(
+      limitValue,
+      offsetValue,
+    );
   }
 
   @Get('/pools/count')

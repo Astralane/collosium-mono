@@ -12,9 +12,12 @@ export class MevService {
     private readonly clickhouseClient: ClickHouseClient,
   ) {}
 
-  async fetchDataFromSandwichesTable(): Promise<ISandwichesDTO[]> {
+  async fetchDataFromSandwichesTable(
+    limit: number,
+    offset: number,
+  ): Promise<ISandwichesDTO[]> {
     try {
-      const query = 'SELECT * FROM sandwiches LIMIT 10;';
+      const query = `SELECT * FROM sandwiches LIMIT ${limit} OFFSET ${offset};`;
       const result = await this.clickhouseClient.query({
         query,
         format: 'JSON',

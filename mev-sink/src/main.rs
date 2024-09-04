@@ -1,5 +1,3 @@
-#![feature(future_join)]
-
 mod clickhouse_client;
 mod db_types;
 mod substream_client;

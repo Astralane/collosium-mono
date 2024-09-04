@@ -1,16 +1,14 @@
 use crate::db_types::{SandwichRow, TransferRow};
-use crate::sf::solana::dex::sandwiches::v1::{Sandwich, SandwichOutput};
-use crate::sf::solana::transfer::v1::{SystemTransfer, TransferOutput};
+use crate::sf::solana::dex::sandwiches::v1::SandwichOutput;
+use crate::sf::solana::transfer::v1::TransferOutput;
 use anyhow::Context;
 use clickhouse::Row;
 use serde::Serialize;
 use tokio::task::JoinHandle;
-use tracing::trace;
 
-pub struct ClickhouseClient {
-    pub jh: JoinHandle<()>,
+pub struct ClientHandle {
+    jh: JoinHandle<()>,
     shutdown: tokio::sync::oneshot::Sender<()>,
-    sender: tokio::sync::mpsc::Sender<InsertRequest>,
 }
 
 pub enum Insertable {
@@ -45,9 +43,19 @@ pub struct InsertRequest {
     table: &'static str,
 }
 
+impl ClientHandle {
+    pub async fn shutdown(self) {
+        self.shutdown.send(()).expect("cannot send shutdown signal");
+        self.jh.await.unwrap();
+    }
+}
+pub struct ClickhouseClient {
+    sender: tokio::sync::mpsc::Sender<InsertRequest>,
+}
+
 impl ClickhouseClient {
-    pub async fn new(client: clickhouse::Client) -> anyhow::Result<Self> {
-        let (sender, recv) = tokio::sync::mpsc::channel(10000);
+    pub async fn new(client: clickhouse::Client) -> anyhow::Result<(Self, ClientHandle)> {
+        let (sender, recv) = tokio::sync::mpsc::channel(500000);
         let (shutdown, shutdown_receiver) = tokio::sync::oneshot::channel();
         let sql_files = vec![
             include_str!("./tables/tips.sql"),
@@ -58,11 +66,7 @@ impl ClickhouseClient {
             client.query(sql).execute().await?;
         }
         let jh = tokio::spawn(run_service(client, recv, shutdown_receiver));
-        Ok(Self {
-            jh,
-            shutdown,
-            sender,
-        })
+        Ok((Self { sender }, ClientHandle { jh, shutdown }))
     }
 
     pub async fn insert(&self, data: Insertable) -> anyhow::Result<()> {
@@ -75,11 +79,6 @@ impl ClickhouseClient {
             .send(request)
             .await
             .context("cannot send insert request")
-    }
-
-    pub async fn shutdown(self) {
-        self.shutdown.send(()).unwrap();
-        self.jh.await.unwrap();
     }
 }
 
@@ -98,7 +97,7 @@ async fn run_service(
             request = work_input.recv() => {
                 match request {
                     Some(request) => {
-                        let mut result;
+                        let result;
                         match request.data {
                             Insertable::Sandwiches(rows) => {
                                 result = store_data(&client_clone, &rows, request.table).await;
@@ -114,11 +113,30 @@ async fn run_service(
                         }
                     }
                     None => {
+                        //usually can happen if sender has been dropped (ie, done processing)
                         tracing::error!("Channel closed, shutting down clickhouse client");
                         break;
                     }
                 }
             }
+        }
+    }
+
+    //shutdown has been called or some error occurred
+    //drain the queue
+    while let Some(request) = work_input.recv().await {
+        let result;
+        match request.data {
+            Insertable::Sandwiches(rows) => {
+                result = store_data(&client, &rows, request.table).await;
+            }
+            Insertable::Tips(rows) => {
+                result = store_data(&client, &rows, request.table).await;
+            }
+        }
+        //handle error
+        if let Err(err) = result {
+            tracing::error!("Error inserting data: {:?}", err);
         }
     }
 }

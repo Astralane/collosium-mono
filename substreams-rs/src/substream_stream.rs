@@ -187,23 +187,23 @@ fn process_substreams_response(
             // module you requested.
             //
             progress.stages.iter().for_each(|module| {
-                tracing::info!("completed ranges {:?}", module.completed_ranges,)
+                tracing::info!("completed ranges {:?}", module.completed_ranges)
             });
-            progress
-                .running_jobs
-                .iter()
-                .for_each(|job| tracing::info!("running job {:?}", job,));
-            progress
-                .modules_stats
-                .iter()
-                .filter(|module| module.name.eq(module_name))
-                .for_each(|module| {
-                    tracing::debug!(
-                        "total_processed_block_count {:?} highest_block {:?} ",
-                        module.total_processed_block_count,
-                        module.highest_contiguous_block
-                    )
-                });
+            // progress
+            //     .running_jobs
+            //     .iter()
+            //     .for_each(|job| tracing::info!("running job {:?}", job,));
+            // progress
+            //     .modules_stats
+            //     .iter()
+            //     .filter(|module| module.name.eq(module_name))
+            //     .for_each(|module| {
+            //         tracing::debug!(
+            //             "total_processed_block_count {:?} highest_block {:?} ",
+            //             module.total_processed_block_count,
+            //             module.highest_contiguous_block
+            //         )
+            //     });
 
             BlockProcessedResult::Skip()
         }

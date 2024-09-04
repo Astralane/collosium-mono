@@ -1,6 +1,4 @@
 use crate::clickhouse_client::{ClickhouseClient, Insertable};
-use anyhow::Context;
-use std::marker::PhantomData;
 use std::sync::Arc;
 use substreams_rs::substream_stream::{BlockResponse, SubstreamsStream};
 use substreams_rs::substreams::SubstreamsEndpoint;
@@ -55,25 +53,13 @@ impl SubstreamClient {
                             Some(Ok(BlockResponse::New(data))) => {
                                 let output = data.output.as_ref().unwrap().map_output.as_ref().unwrap();
                                 let out = T::decode(output.value.as_slice());
-                                let start =283581338;
                                 match out {
                                     Ok(out) => {
-                                        let insertable: Insertable = out.into();
-                                        //print highest slot
-                                        let slot = match insertable {
-                                                Insertable::Sandwiches(sandwiches) => {
-                                                    sandwiches.iter().map(|s| s.slot).max()
-                                                }
-                                                Insertable::Tips(tips) => {
-                                                    tips.iter().map(|t| t.slot).max()
-                                                }
-                                            };
-                                        tracing::info!("slots processed: {:?}", slot.map(|s| s - start));
-                                       //let result = db.insert(out.into()).await;
-                                       //  if let Err(err) = result {
-                                       //      tracing::error!("Error inserting data: {:?}", err);
-                                       //      break;
-                                       //  }
+                                        let result = db.insert(out.into()).await;
+                                        if let Err(err) = result {
+                                            tracing::error!("Error inserting data: {:?}", err);
+                                            break;
+                                        }
                                     }
                                     Err(err) => {
                                         tracing::error!("Error decoding output: {:?}", err);

@@ -5,6 +5,8 @@ import {
   TPoolsCountDTO,
   TProgramsCountDTO,
   TSandwichTotalDTO,
+  TTokensCountDTO,
+  TTotalCountsDTO,
 } from './dto/poolscount.dto';
 
 @Controller('mev')
@@ -35,6 +37,23 @@ export class MevController {
   @Get('/programs/count')
   async getProgramsCount(): Promise<TProgramsCountDTO[]> {
     return await this.mevService.fetchAggreatedProgramsCount();
+  }
+
+  @Get('/tokens/count')
+  async getTokensCount(): Promise<TTokensCountDTO[]> {
+    return await this.mevService.fetchAggreatedTokensCount();
+  }
+
+  @Get('/totalCounts')
+  async getTotalCounts(): Promise<TTotalCountsDTO> {
+    return await this.mevService.fecthTotalCounts();
+  }
+
+  @Get('/sandwich')
+  async getSandwichByTxId(
+    @Query('tx_id') tx_id: string,
+  ): Promise<ISandwichesDTO> {
+    return await this.mevService.fetchSandwichesByProgram(tx_id);
   }
   @Post()
   create(): string {

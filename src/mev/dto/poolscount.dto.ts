@@ -16,5 +16,18 @@ export class TProgramsCountDTO {
   @Expose()
   program: string;
   @Expose()
-  count: number;
+  total_count: number;
+}
+
+export class TTotalCountsDTO {
+  original_count: number;
+  total_attackers: number;
+  total_victims: number;
+}
+
+export class TTokensCountDTO {
+  @Expose()
+  token: string;
+  @Expose()
+  total_count: number;
 }

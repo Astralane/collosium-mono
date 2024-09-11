@@ -109,21 +109,21 @@ export async function parseMultipleTx(signatures: string[]) {
 export const useFetchSlots = () => {
   const [initialSlot, setInitialSlot] = useState<number | null>(null);
   const [slot, setSlot] = useState<number | null>(null);
-  const [finalData, setFinalData] = useState<MergedTx[]>(getMockData());
-
+  const [finalData, setFinalData] = useState<MergedTx[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
   // Fetch the latest slot on mount
-  useEffect(() => {
-    const fetchInitialSlot = async () => {
-      try {
-        const connection = new Connection(SOLANA_RPC_URL, "confirmed");
-        const latestSlot = await connection.getSlot();
-        setSlot(latestSlot); // Set the initial slot
-        setInitialSlot(latestSlot);
-      } catch (error) {
-        console.error("Error fetching initial slot:", error);
-      }
-    };
+  const fetchInitialSlot = async () => {
+    try {
+      const connection = new Connection(SOLANA_RPC_URL, "confirmed");
+      const latestSlot = await connection.getSlot();
+      setSlot(latestSlot); // Set the initial slot
+      setInitialSlot(latestSlot);
+    } catch (error) {
+      console.error("Error fetching initial slot:", error);
+    }
+  };
 
+  useEffect(() => {
     fetchInitialSlot();
   }, []);
 
@@ -133,12 +133,17 @@ export const useFetchSlots = () => {
       if (slot !== null) {
         try {
           const response = await axios.get(
-            `http://198.244.253.172:3000/sandwiches/${slot}`
+            `http://localhost:3030/sandwiches/${slot}`
           );
           const result = response.data;
-          const formattedData = await formatData(result);
+          let formattedData: any = [];
+          if (result.length > 0) {
+            formattedData = await formatData(result, slot);
+          }
           setFinalData((prevData) => [...prevData, ...formattedData]);
+          setIsFetching(false);
         } catch (error) {
+          setIsFetching(false);
           console.error("Error fetching data for slot:", error);
         }
       }
@@ -158,7 +163,7 @@ export const useFetchSlots = () => {
     }
   }, [slot, initialSlot]);
 
-  return finalData;
+  return { finalData, fetchInitialSlot, isFetching };
 };
 
 export const fetchSlots = async () => {
@@ -166,22 +171,24 @@ export const fetchSlots = async () => {
   const slot = await connection.getSlot();
   return slot;
 };
-export const formatData = async (result: TMevResult[]) => {
+export const formatData = async (result: TMevResult[], slot: number) => {
   const frontRunsigs = result.map((res) => res.front_run);
   const backRunsigs = result.map((res) => res.backrun);
   const signatures = [...frontRunsigs, ...backRunsigs];
   const parsedData = await parseMultipleTx(signatures);
   const parsedRes: ParsedResponse = {};
-  parsedData?.result?.map((res: Result) => {
-    res?.actions?.map((action: Action) => {
-      if (action.type === "SWAP") {
-        const key = res.signatures?.[0] as string;
-        parsedRes[key] = action?.info;
-      }
+  parsedData?.result?.length > 0 &&
+    parsedData?.result?.map((res: Result) => {
+      res?.actions?.map((action: Action) => {
+        if (action.type === "SWAP") {
+          const key = res.signatures?.[0] as string;
+          parsedRes[key] = action?.info;
+        }
+      });
     });
-  });
   const parsedResult: MergedTx[] = result.map((res) => {
     return {
+      slot,
       ...res,
       frontRunData: {
         signature: res.front_run,
@@ -718,3 +725,69 @@ const resultDummy: ParsedTx = {
       slippage_paid: null,
     },
 };
+
+export const dummyrows = [
+  {
+    frontrun_tx_hash:
+      "5DutKgtRWTDNMFHcbSfPm15eJPDNfvN1shYVzzJ5mFHkXWSSuZzchvMyycYDCZ7qvg3pH8VYK2guMWnSZVHXdmLC",
+    slot: 283581338,
+    "frontrun_swaps.tx_hash":
+      "['5DutKgtRWTDNMFHcbSfPm15eJPDNfvN1shYVzzJ5mFHkXWSSuZzchvMyycYDCZ7qvg3pH8VYK2guMWnSZVHXdmLC']",
+    "frontrun_swaps.multi_location":
+      "['5DutKgtRWTDNMFHcbSfPm15eJPDNfvN1shYVzzJ5mFHkXWSSuZzchvMyycYDCZ7qvg3pH8VYK2guMWnSZVHXdmLC/1/0']",
+    "frontrun_swaps.from": "['ARSCioaDhR6oW7vcfEDF24XFQpedH5h6p33VxLGbkfVa']",
+    "frontrun_swaps.pool": "['DndU8CTUtpscngLeA4WLgJZnA6ACRp89mNydP64r3kPh']",
+    "frontrun_swaps.instruction_index": "[1]",
+    "frontrun_swaps.inner_instruction_index": "[1]",
+    "frontrun_swaps.transaction_index": "[288]",
+    "frontrun_swaps.fee": "[0]",
+    "frontrun_swaps.inner_program":
+      "['675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8']",
+    "frontrun_swaps.outer_program":
+      "['ChXs7eqjAKr8qrsGHcnp7sBKzrDU2JE2RjMqX59ATSeH']",
+    "frontrun_swaps.token_in":
+      "['CkP15sABWWhhy9YTcoxL5KNxJuzgtAbbDJ5wcwy2pump']",
+    "frontrun_swaps.token_out":
+      "['So11111111111111111111111111111111111111112']",
+    "frontrun_swaps.amount_in": "[5238137.85872899]",
+    "frontrun_swaps.amount_out": "[6.4895683049999775]",
+    "victim_swaps.tx_hash":
+      "['436jY4YFtC2HjrtJKZGtXRCUYpJdKjmxGe5Qn2qWjNy2tjcbtzbUhXYJxuhw7dqNXuaTc6NBEX7PEjX7zCTHXt8Q']",
+    "victim_swaps.multi_location":
+      "['436jY4YFtC2HjrtJKZGtXRCUYpJdKjmxGe5Qn2qWjNy2tjcbtzbUhXYJxuhw7dqNXuaTc6NBEX7PEjX7zCTHXt8Q/4/0']",
+    "victim_swaps.from": "['4oUgikEAqtSFnwDeQoGGiZ42AJBX7dVZCgBvrqGt2Vpa']",
+    "victim_swaps.pool": "['DndU8CTUtpscngLeA4WLgJZnA6ACRp89mNydP64r3kPh']",
+    "victim_swaps.instruction_index": "[4]",
+    "victim_swaps.inner_instruction_index": "[4]",
+    "victim_swaps.transaction_index": "[289]",
+    "victim_swaps.fee": "[0]",
+    "victim_swaps.inner_program": "['']",
+    "victim_swaps.outer_program":
+      "['675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8']",
+    "victim_swaps.token_in": "['CkP15sABWWhhy9YTcoxL5KNxJuzgtAbbDJ5wcwy2pump']",
+    "victim_swaps.token_out": "['So11111111111111111111111111111111111111112']",
+    "victim_swaps.amount_in": "[766629.3667879999]",
+    "victim_swaps.amount_out": "[1.0]",
+    backrun_tx_hash:
+      "5W3sMcndgyr5cZQUFMJBL6p2gsTMi43o4newxXakmq71PXyHhJddf25EANb8BBNedFUVXBDTGvEVEsGb24f7Aw8L",
+    "backrun_swaps.tx_hash":
+      "['5W3sMcndgyr5cZQUFMJBL6p2gsTMi43o4newxXakmq71PXyHhJddf25EANb8BBNedFUVXBDTGvEVEsGb24f7Aw8L']",
+    "backrun_swaps.multi_location":
+      "['5W3sMcndgyr5cZQUFMJBL6p2gsTMi43o4newxXakmq71PXyHhJddf25EANb8BBNedFUVXBDTGvEVEsGb24f7Aw8L/1/0']",
+    "backrun_swaps.from": "['ARSCioaDhR6oW7vcfEDF24XFQpedH5h6p33VxLGbkfVa']",
+    "backrun_swaps.pool": "['DndU8CTUtpscngLeA4WLgJZnA6ACRp89mNydP64r3kPh']",
+    "backrun_swaps.instruction_index": "[1]",
+    "backrun_swaps.inner_instruction_index": "[1]",
+    "backrun_swaps.transaction_index": "[290]",
+    "backrun_swaps.fee": "[0]",
+    "backrun_swaps.inner_program":
+      "['675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8']",
+    "backrun_swaps.outer_program":
+      "['ChXs7eqjAKr8qrsGHcnp7sBKzrDU2JE2RjMqX59ATSeH']",
+    "backrun_swaps.token_in": "['So11111111111111111111111111111111111111112']",
+    "backrun_swaps.token_out":
+      "['CkP15sABWWhhy9YTcoxL5KNxJuzgtAbbDJ5wcwy2pump']",
+    "backrun_swaps.amount_in": "[6.5440579979999995]",
+    "backrun_swaps.amount_out": "[5238137.85872899]",
+  },
+];

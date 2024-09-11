@@ -1,3 +1,4 @@
+"use client";
 import * as React from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
@@ -7,8 +8,11 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
 import Image from "next/image";
+import { ListItem, ListItemButton, ListItemText } from "@mui/material";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
+  const router = useRouter();
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static">
@@ -22,13 +26,12 @@ export default function Navbar() {
           >
             <MenuIcon />
           </IconButton> */}
-          <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
             <Image src="/images/logo.png" alt="logo" height={80} width={190} />
-            {/* <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              Astralane
-            </Typography> */}
           </Box>
-          {/* <Button color="inherit">Login</Button> */}
+          <Button color="inherit" onClick={() => router.push("/")}>
+            Home
+          </Button>
         </Toolbar>
       </AppBar>
     </Box>

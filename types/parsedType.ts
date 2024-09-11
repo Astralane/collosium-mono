@@ -82,6 +82,7 @@ export interface ParsedResponse {
 }
 
 export type MergedTx = {
+  slot?: number;
   frontRunData: {
     signature: string;
     data: ActionInfo;
@@ -101,4 +102,9 @@ export type TMevResult = {
 
 export type ParsedTx = {
   [key: string]: ActionInfo;
+};
+
+export type TFinalParsed = {
+  slot: number;
+  data: MergedTx[];
 };

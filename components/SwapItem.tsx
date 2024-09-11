@@ -1,10 +1,14 @@
-import React, { FC } from "react";
+import React, { FC, useEffect, useState } from "react";
 
 import { Box, Typography } from "@mui/material";
 import Link from "@mui/material/Link";
 import Image from "next/image";
 import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import { Person2Outlined } from "@mui/icons-material";
+import getTokenMetadata, {
+  fetchTokenMetaDataHelius,
+} from "@/utils/fetchTokenMetaData";
+import { SolTokenMetadataJSON } from "moralis/common-sol-utils";
 
 type SwapItemProps = {
   tokenIn: string;
@@ -28,6 +32,21 @@ const SwapItem: FC<SwapItemProps> = ({
   tokeInAddress,
   tokenOutAddress,
 }) => {
+  // const handleTokenMetaData = async (tokenIn: string, tokenOut: string) => {
+  //   console.log(tokenIn, tokenOut);
+  //   const tokenIndata = await getTokenMetadata(tokenIn);
+  //   const tokenOutdata = await getTokenMetadata(tokenOut);
+  //   setTokenInMeta(tokenIndata);
+  //   setTokenOutMeta(tokenOutdata);
+  //   const datas = await fetchTokenMetaDataHelius([tokenIn, tokenOut]);
+  //   console.log(datas, "From heilus");
+  // };
+
+  // useEffect(() => {
+  //   if (tokenIn && tokenOut) {
+  //     handleTokenMetaData(tokenIn, tokenOut);
+  //   }
+  // }, [tokenIn, tokenOut]);
   return (
     <>
       <Box
@@ -66,7 +85,7 @@ const SwapItem: FC<SwapItemProps> = ({
               {tokenIn}
             </Link>
             <Typography variant="body1" fontWeight={"600"} mt="5px">
-              {parseFloat(amountIn).toFixed(2)}
+              {parseFloat(amountIn).toFixed(8)}
             </Typography>
           </Box>
         </Box>
@@ -84,7 +103,7 @@ const SwapItem: FC<SwapItemProps> = ({
             justifyContent: "flex-end",
           }}
         >
-          <Box>
+          <Box textAlign={"right"}>
             <Link
               variant="body1"
               color={"text.secondary"}
@@ -92,17 +111,11 @@ const SwapItem: FC<SwapItemProps> = ({
               underline="none"
               href={`https://solscan.io/account/${tokenOutAddress}`}
               target="_blank"
-              textAlign={"right"}
             >
               {tokenOut}
             </Link>
-            <Typography
-              variant="body1"
-              fontWeight={"600"}
-              mt="5px"
-              textAlign={"right"}
-            >
-              {parseFloat(amountOut).toFixed(2)}
+            <Typography variant="body1" fontWeight={"600"} mt="5px">
+              {parseFloat(amountOut).toFixed(8)}
             </Typography>
           </Box>
           <Image

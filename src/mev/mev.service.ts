@@ -9,6 +9,7 @@ import {
   TTotalCountsDTO,
   TTokensCountDTO,
 } from './dto/poolscount.dto';
+import { ILiquidationCountsDTO, ILiquidationDTO } from './dto/liquidations.dto';
 
 @Injectable()
 export class MevService {
@@ -23,7 +24,7 @@ export class MevService {
     offset: number,
   ): Promise<ISandwichesDTO[]> {
     try {
-      const query = `SELECT * FROM sandwiches LIMIT ${limit} OFFSET ${offset};`;
+      const query = `SELECT DISTINCT ON (frontrun_tx_id) * FROM sandwiches LIMIT ${limit} OFFSET ${offset};`;
       const result = await this.clickhouseClient.query({
         query,
         format: 'JSON',
@@ -137,6 +138,55 @@ export class MevService {
     } catch (error) {
       // Handle error
       throw new Error('Failed to fetch tokens count from the table');
+    }
+  }
+  async fetchLiquidations(
+    limit: number,
+    offset: number,
+  ): Promise<ILiquidationDTO[]> {
+    try {
+      const query = `SELECT DISTINCT ON (tx_id) * FROM liquidations LIMIT ${limit} OFFSET ${offset};`;
+      const result = await this.clickhouseClient.query({
+        query,
+        format: 'JSON',
+      });
+      const data = (await result.json()).data;
+      return plainToInstance(ILiquidationDTO, data, {
+        excludeExtraneousValues: true,
+      });
+    } catch (error) {
+      // Handle error
+      console.log(error);
+      throw new Error('Failed to fetch data from liquidations table');
+    }
+  }
+
+  async fetchLiquidationsCount(): Promise<ILiquidationCountsDTO> {
+    try {
+      const query =
+        'SELECT COUNT(*) as total, COUNT(DISTINCT(signer)) as total_signers from liquidations l;';
+      const result = await this.clickhouseClient.query({
+        query,
+        format: 'JSON',
+      });
+      const data = (await result.json()).data;
+      return data[0] as unknown as ILiquidationCountsDTO;
+    } catch (error) {
+      // Handle error
+      throw new Error('Failed to fetch liquidations count');
+    }
+  }
+  async fetchLiquidationById(id: string): Promise<ILiquidationDTO> {
+    try {
+      const query = `SELECT * from liquidations WHERE tx_id = '${id}';`;
+      const result = await this.clickhouseClient.query({
+        query,
+        format: 'JSON',
+      });
+      const data = (await result.json()).data;
+      return data[0] as unknown as ILiquidationDTO;
+    } catch (error) {
+      throw new Error('Failed to fetch liquidation by program');
     }
   }
 }

@@ -8,6 +8,7 @@ import {
   TTokensCountDTO,
   TTotalCountsDTO,
 } from './dto/poolscount.dto';
+import { ILiquidationCountsDTO, ILiquidationDTO } from './dto/liquidations.dto';
 
 @Controller('mev')
 export class MevController {
@@ -55,6 +56,29 @@ export class MevController {
   ): Promise<ISandwichesDTO> {
     return await this.mevService.fetchSandwichesByProgram(tx_id);
   }
+
+  @Get('/liquidations')
+  async getAllLiquidations(
+    @Query('limit') limit: string,
+    @Query('offset') offset: string,
+  ): Promise<ILiquidationDTO[]> {
+    const limitValue = parseInt(limit, 10) || 10; // Default limit is 10 if not provided
+    const offsetValue = parseInt(offset, 10) || 0; // Default offset is 0 if not provided
+    return await this.mevService.fetchLiquidations(limitValue, offsetValue);
+  }
+
+  @Get('/liquidations/count')
+  async getLiquidationCount(): Promise<ILiquidationCountsDTO> {
+    return await this.mevService.fetchLiquidationsCount();
+  }
+
+  @Get('/liquidation')
+  async getLiquidationById(
+    @Query('tx_id') tx_id: string,
+  ): Promise<ILiquidationDTO> {
+    return await this.mevService.fetchLiquidationById(tx_id);
+  }
+
   @Post()
   create(): string {
     return 'This is the POST endpoint for /mev';

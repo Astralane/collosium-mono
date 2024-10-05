@@ -34,3 +34,50 @@ export async function fetchTokenMetaDataHelius(pubKeys: string[]) {
   const data = res.data;
   return data;
 }
+
+type TokenPriceResponse = {
+  pubKey: string;
+  data: {
+    value: string;
+  }; // Adjust 'any' to match the structure of the fetched data if you know it
+};
+
+export async function fetchTokenPricesBirdsEye(
+  pubKey: string,
+  unixTime: number
+): Promise<number> {
+  const res = await axios.get(
+    `https://public-api.birdeye.so/defi/historical_price_unix?address=${pubKey}&unixtime=${unixTime}`,
+    {
+      headers: {
+        "X-API-KEY": "982828a2846146b888f507653bd4718d",
+      },
+    }
+  );
+  const data = await res.data;
+  return data.data.value ?? 0;
+  // return new Promise((resolve, reject) => {
+  //   setTimeout(() => {
+  //     resolve(42); // Return any number, here 42 is just an example
+  //   }, 1000); // Simulate an asynchronous delay of 1 second
+  // });
+}
+
+export type TTokenMetaDataBirdsEye = {
+  address: string;
+  symbol: string;
+  logoURI: string;
+  decimals: number;
+};
+export async function fetchTokenMetaData(pubKey: string) {
+  const res = await axios.get(
+    `https://public-api.birdeye.so/defi/token_overview?address=${pubKey}`,
+    {
+      headers: {
+        "X-API-KEY": "982828a2846146b888f507653bd4718d",
+      },
+    }
+  );
+  const data = await res.data;
+  return (data.data as TTokenMetaDataBirdsEye) ?? {};
+}

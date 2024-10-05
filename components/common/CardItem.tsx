@@ -8,6 +8,7 @@ type CardItemProps = {
   textToEnd: boolean;
   isLink?: boolean;
   ogValue?: string;
+  isAccount?: boolean;
 };
 const CardItem: FC<CardItemProps> = ({
   ogValue,
@@ -15,6 +16,7 @@ const CardItem: FC<CardItemProps> = ({
   value,
   textToEnd,
   isLink,
+  isAccount,
 }) => {
   return (
     <Box
@@ -24,14 +26,14 @@ const CardItem: FC<CardItemProps> = ({
         alignItems: "center",
       }}
     >
-      <Box color={colors.grey[500]}>{title}</Box>
+      <Box color={colors.grey[300]}>{title}</Box>
       {!isLink ? (
         <Box textAlign={textToEnd ? "right" : "left"} fontWeight={500}>
           {value}
         </Box>
       ) : (
         <Link
-          href={`https://solscan.io/tx/${ogValue}`}
+          href={`https://solscan.io/${isAccount ? "account" : "tx"}/${ogValue}`}
           target="_balnk"
           style={{
             textDecoration: "underline",

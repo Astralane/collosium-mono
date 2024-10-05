@@ -32,6 +32,9 @@ export default function Navbar() {
           <Button color="inherit" onClick={() => router.push("/")}>
             Home
           </Button>
+          {/* <Button color="inherit" onClick={() => router.push("/")}>
+            Sandwiches
+          </Button> */}
         </Toolbar>
       </AppBar>
     </Box>

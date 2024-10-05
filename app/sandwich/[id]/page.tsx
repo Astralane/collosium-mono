@@ -279,6 +279,7 @@ export default function Sandwich({ params }: { params: { id: string } }) {
                       // if (isDup) return null;
                       return (
                         <Link
+                          key={index}
                           href={`https://solscan.io/account/${item}`}
                           style={{
                             cursor: "pointer",

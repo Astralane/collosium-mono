@@ -32,21 +32,6 @@ const SwapItem: FC<SwapItemProps> = ({
   tokeInAddress,
   tokenOutAddress,
 }) => {
-  // const handleTokenMetaData = async (tokenIn: string, tokenOut: string) => {
-  //   console.log(tokenIn, tokenOut);
-  //   const tokenIndata = await getTokenMetadata(tokenIn);
-  //   const tokenOutdata = await getTokenMetadata(tokenOut);
-  //   setTokenInMeta(tokenIndata);
-  //   setTokenOutMeta(tokenOutdata);
-  //   const datas = await fetchTokenMetaDataHelius([tokenIn, tokenOut]);
-  //   console.log(datas, "From heilus");
-  // };
-
-  // useEffect(() => {
-  //   if (tokenIn && tokenOut) {
-  //     handleTokenMetaData(tokenIn, tokenOut);
-  //   }
-  // }, [tokenIn, tokenOut]);
   return (
     <>
       <Box

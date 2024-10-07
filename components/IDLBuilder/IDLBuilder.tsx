@@ -64,15 +64,15 @@ const IDLBuilder = () => {
         predicates: [{ type: "eq", value: [pubKey] }],
       },
       {
-        column: "time",
+        column: "slot",
         predicates: [
           {
             type: "gt",
-            value: ["1718148175"],
+            value: ["259125257"],
           },
           {
             type: "lt",
-            value: ["1718179227"],
+            value: ["269125257"],
           },
         ],
       },

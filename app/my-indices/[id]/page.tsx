@@ -117,7 +117,7 @@ export default function IndexDetails({ params }: { params: { id: string } }) {
       <div className="h-[800px] mt-6">
         <div className="mb-4 text-slate-400">Graphql Playground</div>
         <GraphQlSandbox
-          endpoint={` http://a4-server:4001/api/v1/dataset/${params.id}/graphql`}
+          endpoint={` http://a4-server:3001/api/v1/dataset/${params.id}/graphql`}
         />
       </div>
     </div>

@@ -23,7 +23,7 @@ const AppNavbar: FC = () => {
   return (
     <Sidebar
       aria-label="Sidebar with logo branding example"
-      className="h-screen"
+      className="h-screen fixed"
     >
       <Sidebar.Items className="text-2xl  mb-4">
         <img src="/images/logo.png" alt="" className="logo" />

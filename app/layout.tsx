@@ -28,11 +28,9 @@ export default function RootLayout({
       <body className={`${inter.className}`}>
         <Flowbite theme={{ mode: "dark" }}>
           <Providers>
-            <main className="flex">
+            <main className="flex h-screen">
               <AppNavbar />
-              <main className="p-8 w-full max-h-screen overflow-scroll">
-                {children}
-              </main>
+              <main className="ml-64 flex-1 p-8">{children}</main>
             </main>
           </Providers>
         </Flowbite>

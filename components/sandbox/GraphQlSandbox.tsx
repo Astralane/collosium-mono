@@ -1,5 +1,5 @@
 "use client";
-import React, { FC } from "react";
+import React, { FC, memo } from "react";
 import { ApolloSandbox } from "@apollo/sandbox/react";
 type TGPLSandboxProps = {
   endpoint: string;

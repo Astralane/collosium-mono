@@ -55,7 +55,7 @@ export async function fetchTokenPricesBirdsEye(
     }
   );
   const data = await res.data;
-  return data.data.value ?? 0;
+  return data?.data?.value ?? 0;
   // return new Promise((resolve, reject) => {
   //   setTimeout(() => {
   //     resolve(42); // Return any number, here 42 is just an example

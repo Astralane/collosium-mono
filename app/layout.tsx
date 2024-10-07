@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import { ThemeProvider } from "@mui/material/styles";
 import darkTheme from "@/theme/theme";
 import CssBaseline from "@mui/material/CssBaseline";
+import Providers from "./providers";
 
 const inter = Chakra_Petch({
   subsets: ["latin"],
@@ -35,13 +36,15 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <ThemeProvider theme={darkTheme}>
-        <CssBaseline />
-        <body className={inter.className}>
-          <Navbar />
-          {children}
-        </body>
-      </ThemeProvider>
+      <Providers>
+        <ThemeProvider theme={darkTheme}>
+          <CssBaseline />
+          <body className={inter.className}>
+            <Navbar />
+            {children}
+          </body>
+        </ThemeProvider>
+      </Providers>
     </html>
   );
 }

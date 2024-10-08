@@ -8,7 +8,7 @@
 Astralane provides a highly reliable, scalable, and robust infrastructure for Solana projects. Our system is built to cater to institutional needs, offering seamless streaming services and powerful indexing solutions for developers working on Solana blockchain applications.
 
 
-## 📂 Categories
+## 📂 Tech Stack
 
 ### 1. **High Speed Indexing**
 - **Description**: Astralane’s indexing services offers efficient, real-time blockchain data for advanced app features.
@@ -33,17 +33,7 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 [**Documentation**](https://audacelabs.notion.site/Astralane-Low-Latency-Data-Streams-bcb94914ab45467abe9f5d31405f2379)
 
 
-#### 🖥️ **Video demo for Pnl indexer API Calls**:
-- Watch the video on how the pnl indexer data looks like for an account: [**Pnl Indexing**](https://drive.google.com/file/d/1xJ82ZDAxBcRbUWk-oGq0iulj6VHm3BS1/view)
-
-
-## 📄 Documentation
-- [**Astralane Indexer**](https://www.notion.so/audacelabs/Astralane-Indexer-Public-Docs-d506444ec9c24c3086e740743cda5df6)
-- [**Astralane low latency data streams**](https://www.notion.so/audacelabs/Astralane-Low-Latency-Data-Streams-bcb94914ab45467abe9f5d31405f2379)
-- [**API documentation**](http://198.244.253.172:3002/api-docs)
-
-
-## 📱 Frontend Apps Overview
+## 📱 Core Products Overview (Radar Hack)
 
 ### 1. **Program Indexer UI**
  - [**Code**](https://github.com/Astralane/astralane-streaming-fe)
@@ -76,7 +66,15 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
   ![Liquidation fail](./screenshots/liquidation_fail.png)
   ![Liquidation success](./screenshots/liquidation_success.png)
 
+### 3. **Account Indexer with DEX Pnl**
+- Watch the video on how the pnl indexer data looks like for an account: [**Pnl Indexing**](https://drive.google.com/file/d/1xJ82ZDAxBcRbUWk-oGq0iulj6VHm3BS1/view)
+
+## 📄 Documentation
+- [**Astralane Indexer**](https://www.notion.so/audacelabs/Astralane-Indexer-Public-Docs-d506444ec9c24c3086e740743cda5df6)
+- [**Astralane low latency data streams**](https://www.notion.so/audacelabs/Astralane-Low-Latency-Data-Streams-bcb94914ab45467abe9f5d31405f2379)
+- [**API documentation**](http://198.244.253.172:3002/api-docs)
 
 ## 🔗 Additional Resources
-- [Official Website](https://www.astralane.io/)
+- [Website](https://www.astralane.io/)
+- [Twitter](https://x.com/Astralaneio)
 

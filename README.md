@@ -1,6 +1,4 @@
-# **Astralane** ![Astralane Logo](./logo.png)
-
-**Institutional-grade infrastructure for Solana**
+# **Astralane - Institutional-grade infrastructure for Solana** ![Astralane Logo](./logo.png)
 
 
 ## 🚀 Overview
@@ -10,9 +8,10 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 
 ## 📂 Tech Stack
 
-### 1. **High Speed Indexing**
+### 1. **High Speed Indexers**
 - **Description**: Astralane’s indexing services offers efficient, real-time blockchain data for advanced app features.
-  
+
+Code Repos:
 - [**Astralane geyser plugin**](https://github.com/Astralane/astralane-geyser-plugin): Customized geyser plugin which works with index worker for active filler.
 - [**Astralane protos**](https://github.com/Astralane/astralane-protos): Protos used for Geyser plugin 
 - [**Astralane car parser**](https://github.com/Astralane/astralane-car-parser): Running and maintaining the car parsing logic which traverses the files and generates clickhouse DBs or updates them.
@@ -24,20 +23,22 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 - [**Astralane substream client**](https://github.com/Astralane/substream-client): Consumes data from mev subtreams and sink to the Clickhouse DB.
 - [**Astralane mev indxer backend**](https://github.com/Astralane/mev-indexer-be): Rest API's to query collected mev data's from the Clickhouse DB
 
+- [**Indexer Docs**](https://www.notion.so/audacelabs/Astralane-Indexer-Public-Docs-d506444ec9c24c3086e740743cda5df6)
+
 
 ### 2. **Low Latency middleware**
 -- **Description**: A Rust-based low latency middleware designed for high performance, global distribution and robustness. Privacy, Security, No Filter, Max Profit Relay for Streaming, Sending and bundling. 
 - [**Astralane streaming server**](https://github.com/Astralane/astralane-streaming-server).
 - [**Astralane streaming client**](https://github.com/Astralane/substream-client).
-
-[**Documentation**](https://audacelabs.notion.site/Astralane-Low-Latency-Data-Streams-bcb94914ab45467abe9f5d31405f2379)
+- [**Bare Documentation**](https://audacelabs.notion.site/Astralane-Low-Latency-Data-Streams-bcb94914ab45467abe9f5d31405f2379)
+- Reach out to hi@astralane.io for access to colo, gRPC, websockets, txn sending endpoints, etc.
 
 
 ## 📱 Core Products Overview (Radar Hack)
 
 ### 1. **Program Indexer UI**
- - [**Code**](https://github.com/Astralane/astralane-streaming-fe)
- - [**https://a4.astralane.io/**](https://a4.astralane.io/) 
+ - [**Code Repo**](https://github.com/Astralane/astralane-streaming-fe)
+ - [**Live Demo Link**](https://a4.astralane.io/) 
 - **Description**: This app provides user interface to fetch IDL and config indxing based on various filters by selecting them.
 - **Features**:
   - Create raw transaction indxer with filters
@@ -53,8 +54,8 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 
 
 ### 2. **Mev Dashboard 2**
- - [**Code**](https://github.com/Astralane/mev-indexer-ui)
- - [**https://a4.astralane.io/mev**](https://a4.astralane.io/mev) 
+ - [**Code Repo**](https://github.com/Astralane/mev-indexer-ui)
+ - [**Live Demo Link**](https://a4.astralane.io/mev) 
 - **Description**: View the mev sandwich attacks and liquidations captured through our Astralane mev subtream.
 - **Features**:
   - View sandwich attacks overview, profits and details of attack
@@ -70,8 +71,6 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 - Watch the video on how the pnl indexer data looks like for an account: [**Pnl Indexing**](https://drive.google.com/file/d/1xJ82ZDAxBcRbUWk-oGq0iulj6VHm3BS1/view)
 
 ## 📄 Documentation
-- [**Astralane Indexer**](https://www.notion.so/audacelabs/Astralane-Indexer-Public-Docs-d506444ec9c24c3086e740743cda5df6)
-- [**Astralane low latency data streams**](https://www.notion.so/audacelabs/Astralane-Low-Latency-Data-Streams-bcb94914ab45467abe9f5d31405f2379)
 - [**API documentation**](http://198.244.253.172:3002/api-docs)
 
 ## 🔗 Additional Resources

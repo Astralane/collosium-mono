@@ -51,7 +51,7 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
   ![IDL indexer2](./screenshots/idl-indexer-2.png)
   ![MyIndices](./screenshots/my-index.png)
   ![Gphql](./screenshots/gpqhl.png)
-- **Links**:
+
  - [**Code**](./indexing/frontend/astralane-streaming-fe/)
  - [**App**](https://a4.astralane.io/) 
 
@@ -66,7 +66,7 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
   ![Liquidation table](./screenshots/liquidation_table.png)
   ![Liquidation fail](./screenshots/liquidation_fail.png)
   ![Liquidation success](./screenshots/liquidation_success.png)
-- **Links**:
+
  - [**Code**](./indexing/frontend/mev-indexer-ui/)
  - [**App**](https://a4.astralane.io/mev) 
 

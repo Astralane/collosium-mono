@@ -1,5 +1,0 @@
-# Rust example
-
-```
-cargo run
-```

@@ -1,6 +1,0 @@
-/yellowstone-faithful
-/bin/
-*.car
-_site
-/.cargo
-/target

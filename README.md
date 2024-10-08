@@ -13,21 +13,22 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 ### 1. **High Speed Indexing**
 - **Description**: Astralane’s indexing services offers efficient, real-time blockchain data for advanced app features.
   
-- [**Astralane geyser plugin**](./indexing//astralane-gayser-plugin/): Customized geyser plugin which works with index worker for active filler.
-- [**Astralane protos**](./indexing/astralane-protos/): Protos used for Geyser plugin 
-- [**Astralane car parser**](./indexing/astralane-carparser/): Running and maintaining the car parsing logic which traverses the files and generates clickhouse DBs or updates them.
-- [**Astralane Index worker**](./indexing//astralane-index-worker/): Core Index worker logic which contains parsers for instructions and arguments.
-- [**Astralane Index grapql server**](./indexing/astralane-index-graphql-server/): Serving indexed data from the DB via graphql server.
-- [**Astralane Index admin server**](./indexing/astralane-admin-server-js/): Admin server client for auth and maintaining backfiller jobs etc - Controls Index server workers and maintains them.
-- [**Astralane price parser**](./indexing/astralane-price-parser/): Price parser which fetches data from Pyth and Birdseye
-- [**Astralane solana mev substream**](./indexing/solana-mev-substream/): Parsing raw transactions, identifying sandwich attacks and liquidations based filtering brontes methedology and streams it through substreams.
-- [**Astralane substream client**](./indexing/substream-client/): Consumes data from mev subtreams and sink to the Clickhouse DB.
+- [**Astralane geyser plugin**](https://github.com/Astralane/astralane-geyser-plugin): Customized geyser plugin which works with index worker for active filler.
+- [**Astralane protos**](https://github.com/Astralane/astralane-protos): Protos used for Geyser plugin 
+- [**Astralane car parser**](https://github.com/Astralane/astralane-car-parser): Running and maintaining the car parsing logic which traverses the files and generates clickhouse DBs or updates them.
+- [**Astralane Index worker**](https://github.com/Astralane/astralane-index-worker): Core Index worker logic which contains parsers for instructions and arguments.
+- [**Astralane Index grapql server**](https://github.com/Astralane/astralane-index-graphql-server): Serving indexed data from the DB via graphql server.
+- [**Astralane Index admin server**](https://github.com/Astralane/astralane-admin-server-js): Admin server client for auth and maintaining backfiller jobs etc - Controls Index server workers and maintains them.
+- [**Astralane price parser**](https://github.com/Astralane/astralane-price-parser): Price parser which fetches data from Pyth and Birdseye
+- [**Astralane solana mev substream**](https://github.com/Astralane/solana-mev-substream): Parsing raw transactions, identifying sandwich attacks and liquidations based filtering brontes methedology and streams it through substreams.
+- [**Astralane substream client**](https://github.com/Astralane/substream-client): Consumes data from mev subtreams and sink to the Clickhouse DB.
+- [**Astralane mev indxer backend**](https://github.com/Astralane/mev-indexer-be): Rest API's to query collected mev data's from the Clickhouse DB
 
 
 ### 2. **Low Latency middleware**
 -- **Description**: A Rust-based low latency middleware designed for high performance, global distribution and robustness. Privacy, Security, No Filter, Max Profit Relay for Streaming, Sending and bundling. 
-- [**Astralane streaming server**](./indexing/astralane-streaming-server/).
-- [**Astralane streaming client**](./indexing/astralane-streaming-client/).
+- [**Astralane streaming server**](https://github.com/Astralane/astralane-streaming-server).
+- [**Astralane streaming client**](https://github.com/Astralane/substream-client).
 
 [**Documentation**](https://audacelabs.notion.site/Astralane-Low-Latency-Data-Streams-bcb94914ab45467abe9f5d31405f2379)
 
@@ -45,7 +46,7 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 ## 📱 Frontend Apps Overview
 
 ### 1. **Program Indexer UI**
- - [**Code**](./indexing/frontend/astralane-streaming-fe/)
+ - [**Code**](https://github.com/Astralane/astralane-streaming-fe)
  - [**https://a4.astralane.io/**](https://a4.astralane.io/) 
 - **Description**: This app provides user interface to fetch IDL and config indxing based on various filters by selecting them.
 - **Features**:
@@ -62,7 +63,7 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 
 
 ### 2. **Mev Dashboard 2**
- - [**Code**](./indexing/frontend/mev-indexer-ui/)
+ - [**Code**](https://github.com/Astralane/mev-indexer-ui)
  - [**https://a4.astralane.io/mev**](https://a4.astralane.io/mev) 
 - **Description**: View the mev sandwich attacks and liquidations captured through our Astralane mev subtream.
 - **Features**:

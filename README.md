@@ -10,7 +10,7 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 
 ## 📂 Categories
 
-### 1. **Hig Speed Indexing And Streaming**
+### 1. **High Speed Indexing**
 - **Description**: Astralane’s indexing services offers efficient, real-time blockchain data for advanced app features.
   
 - [**Astralane geyser plugin**](./indexing//astralane-gayser-plugin/): Customized geyser plugin which works with index worker for active filler.
@@ -22,8 +22,14 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 - [**Astralane price parser**](./indexing/astralane-price-parser/): Price parser which fetches data from Pyth and Birdseye
 - [**Astralane solana mev substream**](./indexing/solana-mev-substream/): Parsing raw transactions, identifying sandwich attacks and liquidations based filtering brontes methedology and streams it through substreams.
 - [**Astralane substream client**](./indexing/substream-client/): Consumes data from mev subtreams and sink to the Clickhouse DB.
-- [**Astralane streamin server**](./indexing/astralane-streaming-server/).
-- [**Astralane streamin client**](./indexing/astralane-streaming-client/).
+
+
+### 2. **Low Latency middleware**
+-- **Description**: A Rust-based low latency middleware designed for high performance, global distribution and robustness. Privacy, Security, No Filter, Max Profit Relay for Streaming, Sending and bundling. 
+- [**Astralane streaming server**](./indexing/astralane-streaming-server/).
+- [**Astralane streaming client**](./indexing/astralane-streaming-client/).
+
+-- [**Documentation**](https://audacelabs.notion.site/Astralane-Low-Latency-Data-Streams-bcb94914ab45467abe9f5d31405f2379)
 
 
 #### 🖥️ **Video demo for Pnl indexer API Calls**:
@@ -39,6 +45,8 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 ## 📱 Frontend Apps Overview
 
 ### 1. **Program Indexer UI**
+ - [**Code**](./indexing/frontend/astralane-streaming-fe/)
+ - [**App**](https://a4.astralane.io/) 
 - **Description**: This app provides user interface to fetch IDL and config indxing based on various filters by selecting them.
 - **Features**:
   - Create raw transaction indxer with filters
@@ -52,10 +60,10 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
   ![MyIndices](./screenshots/my-index.png)
   ![Gphql](./screenshots/gpqhl.png)
 
- - [**Code**](./indexing/frontend/astralane-streaming-fe/)
- - [**App**](https://a4.astralane.io/) 
 
 ### 2. **Mev Dashboard 2**
+ - [**Code**](./indexing/frontend/mev-indexer-ui/)
+ - [**App**](https://a4.astralane.io/mev) 
 - **Description**: View the mev sandwich attacks and liquidations captured through our Astralane mev subtream.
 - **Features**:
   - View sandwich attacks overview, profits and details of attack
@@ -66,9 +74,6 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
   ![Liquidation table](./screenshots/liquidation_table.png)
   ![Liquidation fail](./screenshots/liquidation_fail.png)
   ![Liquidation success](./screenshots/liquidation_success.png)
-
- - [**Code**](./indexing/frontend/mev-indexer-ui/)
- - [**App**](https://a4.astralane.io/mev) 
 
 
 ## 🔗 Additional Resources

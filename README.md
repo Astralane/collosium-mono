@@ -29,7 +29,7 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 - [**Astralane streaming server**](./indexing/astralane-streaming-server/).
 - [**Astralane streaming client**](./indexing/astralane-streaming-client/).
 
--- [**Documentation**](https://audacelabs.notion.site/Astralane-Low-Latency-Data-Streams-bcb94914ab45467abe9f5d31405f2379)
+[**Documentation**](https://audacelabs.notion.site/Astralane-Low-Latency-Data-Streams-bcb94914ab45467abe9f5d31405f2379)
 
 
 #### 🖥️ **Video demo for Pnl indexer API Calls**:
@@ -46,7 +46,7 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 
 ### 1. **Program Indexer UI**
  - [**Code**](./indexing/frontend/astralane-streaming-fe/)
- - [**App**](https://a4.astralane.io/) 
+ - [**https://a4.astralane.io/**](https://a4.astralane.io/) 
 - **Description**: This app provides user interface to fetch IDL and config indxing based on various filters by selecting them.
 - **Features**:
   - Create raw transaction indxer with filters
@@ -63,7 +63,7 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 
 ### 2. **Mev Dashboard 2**
  - [**Code**](./indexing/frontend/mev-indexer-ui/)
- - [**App**](https://a4.astralane.io/mev) 
+ - [**https://a4.astralane.io/mev**](https://a4.astralane.io/mev) 
 - **Description**: View the mev sandwich attacks and liquidations captured through our Astralane mev subtream.
 - **Features**:
   - View sandwich attacks overview, profits and details of attack

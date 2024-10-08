@@ -70,12 +70,12 @@ Code Repos:
   ![Liquidation fail](./screenshots/liquidation_fail.png)
   ![Liquidation success](./screenshots/liquidation_success.png)
 
+
 ### 3. **Account Indexer with DEX Pnl**
 - Watch the video on how the pnl indexer data looks like for an account: [**Pnl Indexing**](https://drive.google.com/file/d/1xJ82ZDAxBcRbUWk-oGq0iulj6VHm3BS1/view)
 - [**Docs**](https://audacelabs.notion.site/Accounts-Indexer-Coming-Soon-2369c0f6a644451894deaea69df61604)
+- [**API Endpoints to try this out (with some Swag)**](http://198.244.253.172:3002/api-docs)
 
-## 📄 API Swag
-- [**API documentation**](http://198.244.253.172:3002/api-docs)
 
 ## 🔗 Additional Resources
 - [Website](https://www.astralane.io/)

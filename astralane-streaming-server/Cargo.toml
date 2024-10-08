@@ -1,0 +1,68 @@
+[workspace]
+members = [
+    "streaming-server",
+    "jito-protos",
+]
+resolver = "1"
+
+[workspace.package]
+version = "0.1.13"
+authors = ["Astraline Labs <support@astraline.lab>"]
+repository = "https://github.com/Astralane/astraline-streamin-server"
+homepage = "https://audacelabs.com/"
+license = "Apache-2.0"
+edition = "2021"
+
+[workspace.dependencies]
+axum = "0.5.17"
+bincode = "1.3.3"
+bytes = "1.4.0"
+cached = "0.42.0"
+chrono = "0.4.24"
+clap = { version = "4", features = ["derive", "env"] }
+ed25519-dalek = "1.0.1"
+futures-util = "0.3"
+histogram = "0.6.9"
+jito-protos = { path = "jito-protos", version = "=0.1.13" }
+keyed_priority_queue = "0.4.1"
+lazy_static = "1.4.0"
+once_cell = "1"
+prost = "0.12.1"
+prost-types = "0.12.1"
+protobuf-src = "1.1.0"
+quinn = "0.9"
+rand = "0.8.5"
+rayon = "1.7.0"
+rustls = { version = "0.20", features = ["dangerous_configuration"] }
+sha2 = "0.10.6"
+solana-client = "=1.18.1"
+solana-gossip = "=1.18.1"
+solana-measure = "=1.18.1"
+solana-perf = "=1.18.1"
+solana-program = "=1.18.1"
+solana-rayon-threadlimit = "=1.18.1"
+solana-runtime = "=1.18.1"
+solana-sdk = "=1.18.1"
+solana-streamer = "=1.18.1"
+thiserror = "1.0.40"
+tokio = { version = "1.29.1", features = ["full"] }
+tokio-stream = "0.1.12"
+tonic = { version = "0.10.2", features = ["tls", "tls-roots", "tls-webpki-roots"] }
+tonic-build = "0.10.2"
+tower = { version = "0.4.1", features = ["limit"] }
+reqwest = "0.12.4"
+sqlx = { version = "0.6", features = [ "runtime-tokio-native-tls", "postgres", "uuid" ] }
+futures = "0.3"
+base64 = "0.12.3"
+serde = { version = "1.0.160", features = ["derive"] }
+serde_json = "1.0.96"
+actix-web = "4"
+borsh = { version = "=1.2.1", features = ["derive"] }
+
+[profile.release]
+# thin has minimal overhead vs none (default): https://blog.llvm.org/2016/06/thinlto-scalable-and-incremental-lto.html
+lto = "thin"
+
+# enable debug symbols for profiling the heap using jeprof
+# example: jeprof --web target/release/jito-transaction-relayer jeprof.3085546.9823.i24.heap
+#debug = true

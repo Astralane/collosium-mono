@@ -72,6 +72,5 @@ Astralane provides a highly reliable, scalable, and robust infrastructure for So
 
 
 ## 🔗 Additional Resources
-- [Official Website](https://yourwebsite.com)
-- [Developer API Documentation](https://developer.api.com)
+- [Official Website](https://www.astralane.io/)
 

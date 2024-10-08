@@ -1,0 +1,4 @@
+[submodule "proto/proto"]
+	path = proto/proto
+	url = git@github.com:Astralane/astralane-protos.git
+	branch = dev

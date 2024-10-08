@@ -25,12 +25,14 @@ Code Repos:
 - [**Astralane mev indxer backend**](https://github.com/Astralane/mev-indexer-be): Rest API's to query collected mev data's from the Clickhouse DB
 
 - [**Indexer Docs**](https://www.notion.so/audacelabs/Astralane-Indexer-Public-Docs-d506444ec9c24c3086e740743cda5df6)
+- See below section for currently useable products, reachout to hi@astralane.io for customizable bespoke products
 
 
 ### 2. **Low Latency middleware**
 -- **Description**: A Rust-based low latency middleware designed for high performance, global distribution and robustness. Privacy, Security, No Filter, Max Profit Relay for Streaming, Sending and bundling. 
 - [**Astralane streaming server**](https://github.com/Astralane/astralane-streaming-server).
 - [**Astralane streaming client**](https://github.com/Astralane/substream-client).
+- [**Opt. Txn Sender**](https://github.com/Astralane/atlas-txn-sender/tree/aggregator).
 - [**Bare Documentation**](https://audacelabs.notion.site/Astralane-Low-Latency-Data-Streams-bcb94914ab45467abe9f5d31405f2379)
 - Reach out to hi@astralane.io for access to colo, gRPC, websockets, txn sending endpoints, etc.
 
@@ -70,8 +72,9 @@ Code Repos:
 
 ### 3. **Account Indexer with DEX Pnl**
 - Watch the video on how the pnl indexer data looks like for an account: [**Pnl Indexing**](https://drive.google.com/file/d/1xJ82ZDAxBcRbUWk-oGq0iulj6VHm3BS1/view)
+- [**Docs**](https://audacelabs.notion.site/Accounts-Indexer-Coming-Soon-2369c0f6a644451894deaea69df61604)
 
-## 📄 Documentation
+## 📄 API Swag
 - [**API documentation**](http://198.244.253.172:3002/api-docs)
 
 ## 🔗 Additional Resources

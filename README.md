@@ -7,6 +7,7 @@
 
 Astralane provides a highly reliable, scalable, and robust infrastructure for Solana projects. Our system is built to cater to institutional needs, offering seamless streaming services and powerful indexing solutions for developers working on Solana blockchain applications.
 
+![Astralane Logo](./screenshots/astralane-architecture.jpeg)
 
 ## 📂 Categories
 
